@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+#include	"system.out.h"
+
 void	print(char * string){
 	printf("%s", string);
 }

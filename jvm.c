@@ -81,8 +81,14 @@ The loading process consists of three basic activities. To load a type, the Java
 /*	puts("DEBUG:\tCRIANDO CLASSFILE");*/
 	FILE	* class_binary_file;
 	ClassFile	* cf;
-	
-	class_binary_file = fopen(class_filename, "r");
+	char *	class = ".class";
+/*	if(!strstr(class_filename, ".class\0")){*/
+/*		class_binary_file = fopen(strcat(class_filename, class), "r");	*/
+/*	}*/
+/*	else{*/
+		class_binary_file = fopen(class_filename, "r");
+/*	}*/
+
 	if(!class_binary_file){
 		puts("ClassNotFoundException");
 		exit(EXIT_FAILURE);
@@ -406,6 +412,7 @@ Executing the class's class initialization method, if it has one
 // função getMethod
 METHOD_DATA	* getMethod(char * method_name, CLASS_DATA * cd){
 	char *	name;
+
 	for(u2	i = 0; i < (cd->classfile)->methods_count; i++){
 		name = ((cd->method_data + i)->method_name)->u.Utf8.bytes;
 		name[((cd->method_data + i)->method_name)->u.Utf8.length] = '\0';

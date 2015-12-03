@@ -2,6 +2,7 @@
 
 #include	"interpreter.h"
 #include	"classreader.h"
+#include	"system.out.h"
 #include	"opcode.h"
 #include	<stdlib.h>
 #include	<string.h>
@@ -1270,52 +1271,54 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	printf("\t%" PRIu16, index);
 /*	https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-5.html#jvms-5.4.3.3*/
 	// RESOLUÇÃO DO MÈTODO
-	cp_info	* cp_aux = (thread->jvm_stack)->current_constant_pool;
-	cp_aux = cp_aux + index - 1; // falta verificar se o indice está nos limites da constant pool
-	cp_aux = (thread->jvm_stack)->current_constant_pool + cp_aux->u.Ref.class_index - 1;
+	
+	// nome da classe do método
+	cp_info	* cp = (thread->jvm_stack)->current_constant_pool;
+	cp_info * cp_method_ref = cp + index - 1; // falta verificar se o indice está nos limites da constant pool
+	cp_info * cp_class = cp + cp_method_ref->u.Ref.class_index - 1;
+	cp_info	* cp_class_name = cp + cp_class->u.Class.name_index - 1;
+	char	* class_name = cp_class_name->u.Utf8.bytes;
+	class_name[cp_class_name->u.Utf8.length] = '\0';
+/*	printf("\ncp_class_name: ");*/
+/*	PrintConstantUtf8(cp_class_name, stdout);*/
+/*	puts("");*/
 
-		// nome da classe do método
-	cp_info	* cp_class_name = (thread->jvm_stack)->current_constant_pool + cp_aux->u.Class.name_index - 1;
-	printf("\ncp_class_name: ");
-	PrintConstantUtf8(cp_class_name, stdout);
-	puts("");
+	// nome do método
+	cp_info	* cp_name_and_type = cp + cp_method_ref->u.Ref.name_and_type_index - 1;
+	cp_info * cp_method_name = cp + cp_name_and_type->u.NameAndType.name_index - 1;
 	
-		// nome do método
-	cp_aux = (thread->jvm_stack)->current_constant_pool;
-	cp_aux = cp_aux + index - 1;
-	cp_aux = (thread->jvm_stack)->current_constant_pool + cp_aux->u.Ref.name_and_type_index - 1;
-	cp_info * cp_method_name = (thread->jvm_stack)->current_constant_pool + cp_aux->u.NameAndType.name_index - 1;
-	printf("cp_method_name: ");
-	PrintConstantUtf8(cp_method_name, stdout);
-	puts("");
-	
-		// descritor do método
-	cp_aux = (thread->jvm_stack)->current_constant_pool;
-	cp_aux = cp_aux + index - 1;
-	cp_aux = (thread->jvm_stack)->current_constant_pool + cp_aux->u.Ref.name_and_type_index - 1;
-	cp_info	* cp_method_descriptor = (thread->jvm_stack)->current_constant_pool + cp_aux->u.NameAndType.descriptor_index - 1;
-	printf("cp_method_descriptor: ");
-	PrintConstantUtf8(cp_method_descriptor, stdout);
-	puts("");
-	
+	char	* method_name = cp_method_name->u.Utf8.bytes;
+	method_name[cp_method_name->u.Utf8.length] = '\0';
+/*	printf("cp_method_name: ");*/
+/*	PrintConstantUtf8(cp_method_name, stdout);*/
+/*	puts("");*/
+
+	// descritor do método
+	cp_info	* cp_method_descriptor = cp + cp_name_and_type->u.NameAndType.descriptor_index - 1;
+/*	printf("cp_method_descriptor: ");*/
+/*	PrintConstantUtf8(cp_method_descriptor, stdout);*/
+/*	puts("");*/
+
 	// CONTROLE DE ACESSO
 /*	https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-5.html#jvms-5.4.4*/
 	u1	* backupPC = thread->program_counter;
 	CLASS_DATA	* method_class = getClass(cp_class_name, jvm);
 	if(!method_class){// se a classe do método não foi carregada, mesmo package
-		char	* class_name = cp_class_name->u.Utf8.bytes;
-		class_name[cp_class_name->u.Utf8.length] = '\0';
+		
 		puts("");
-		classLoading(strcat(class_name, ".class"), &method_class, method->class_data, jvm);
+		
+		char	* string = malloc((strlen(class_name) + 7) * sizeof(CHAR));
+		strcpy(string, class_name);
+		strcat(string, ".class");
+		
+		classLoading(string, &method_class, method->class_data, jvm);
 		classLinking(method_class, jvm);
 		classInitialization(method_class, jvm, thread);
 		thread->program_counter = backupPC;
 		printf("\nResume %s\n", opcodes[*thread->program_counter]);
-	}	
-	
-	char	* method_name = cp_method_name->u.Utf8.bytes;
-	method_name[cp_method_name->u.Utf8.length] = '\0';
-	
+	}
+	bool	is_print = false;
+
 	METHOD_DATA	* invoked_method = getMethod(method_name, method_class);
 	if(!(invoked_method->modifiers & ACC_PUBLIC)){// SE O MÉTODO NÃO É PUBLICO
 		if(invoked_method->modifiers & ACC_PROTECTED){ // SE O MÉTODO É PROTECTED
@@ -1349,8 +1352,20 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				}
 			}
 		}
-	}	
-
+	}
+	else{
+		if(!strcmp(class_name, "java/io/PrintStream")){
+			if(!strcmp(method_name, "print")){
+				print((char *)popOperand(thread->jvm_stack));
+				is_print = true;
+			}
+			else if(!strcmp(method_name, "println")){
+				println((char *)popOperand(thread->jvm_stack));
+				is_print = true;
+			}
+			
+		}
+	}
 
 /*	if(!method_class){*/
 /*		puts("\nNoSuchMethodError");*/
@@ -1368,6 +1383,10 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		case	invokespecial:
 			break;
 		case	invokevirtual:
+			if(is_print){
+				break;
+			}
+			
 			break;
 	}
 	thread->program_counter += 3;
