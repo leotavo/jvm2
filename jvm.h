@@ -50,51 +50,52 @@ typedef	struct value{
 		struct{// BYTE
 			s1	byte;
 		}Byte;
-		
+
 		struct{// SHORT
 			s2	short_;
 		}Short;
-		
+
 		struct{// INTEGER
 			s4	integer;
 		}Integer;
-		
+
 		struct{// LONG
 			u4	high_bytes;
 			u4	low_bytes;
 		}Long;
-		
+
 		struct{// FLOAT
 			u4	float_;
 		}Float;
-		
+
 		struct{// DOUBLE
 			u4	high_bytes;
 			u4	low_bytes;
 		}Double;
-		
+
 		struct{// CHAR
 			u2	char_;
 		}Char;
-		
+
 		struct{// boolean
 			u1	boolean;
 		}Boolean;
-		
+
 		struct{// INSTANCE REFERENCE
 			struct object	* reference;
 		}InstanceReference;
-		
+
 		struct{// ARRAY REFERENCE
 			struct array	* reference;
 		}ArrayReference;
-		
+
 		struct{// RETURN ADDRESS
 			OPCODE	* return_address;
 		}ReturnAddress;
 	}u;
 }VALUE;
 
+// OPERAND
 typedef	struct operand{
 	u4	value;
 	TYPE	type;
@@ -132,7 +133,7 @@ typedef	struct	field_data{
 	cp_info	* field_name; // CONSTANT_Utf8
 	cp_info	* field_descriptor; // CONSTANT_Utf8
 	TYPE	field_type;
-	u2	modifiers;	// access_flags	
+	u2	modifiers;	// access_flags
 	field_info	* info;
 	struct variable	* var;
 }FIELD_DATA;
@@ -140,7 +141,7 @@ typedef	struct	field_data{
 // VARIABLE
 typedef	struct variable{
 	FIELD_DATA	* field_reference;
-	VALUE		value;	
+	VALUE		value;
 	struct variable	* prox;
 }VARIABLE;
 
@@ -150,9 +151,8 @@ typedef	struct variable{
 typedef	struct	method_data{
 	cp_info	* method_name; // CONSTANT_Utf8
 	cp_info	* method_descriptor; // CONSTANT_Utf8
-	u2	modifiers;	// access_flags	
+	u2	modifiers;	// access_flags
 	struct class_data	* class_data;
-	
 	// se o método não é abstrato.
 	u4	code_length;
 	u1	* bytecodes; // instruções da jvm
@@ -160,7 +160,7 @@ typedef	struct	method_data{
 	u2	locals_size; // tamanho do vetor de variaveis locais
 	u2	exception_table_length;
 	exception_table_type	* exception_table;
-	method_info	* info; 
+	method_info	* info;
 }METHOD_DATA;
 
 // CLASS_DATA
