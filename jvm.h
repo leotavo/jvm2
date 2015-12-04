@@ -95,7 +95,6 @@ typedef	struct value{
 	}u;
 }VALUE;
 
-<<<<<<< HEAD
 // OPERAND
 typedef	struct operand{
 	u4	value;
