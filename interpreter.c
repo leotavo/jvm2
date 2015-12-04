@@ -200,7 +200,7 @@ void	ldc_(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ldc_w*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ldc2_w*/
 
-OPERAND	* operand = (OPERAND *) malloc(sizeof(OPERAND));
+    OPERAND	* operand = (OPERAND *) malloc(sizeof(OPERAND));
     u4 *value = (u4*) malloc(sizeof(u4));
     u1 high, low;
 	u2 string_index, index;
@@ -284,9 +284,7 @@ void	Tload(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.dload_n*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.aload_n*/
     OPERAND	* operand = (OPERAND *) malloc(sizeof(OPERAND));
-    thread->program_counter++;
     u2 index;
-    index = (u1) *(thread->program_counter);
     u4 *value = (u4*) malloc(sizeof(u4));
     switch(*thread->program_counter)
     {
@@ -295,6 +293,8 @@ void	Tload(METHOD_DATA * method, THREAD * thread, JVM * jvm){
     case fload:
     case dload:
     case aload:
+        thread->program_counter++;
+        index = (u1) *(thread->program_counter);
         if (isWide){
             index = index << 8;
             thread->program_counter++;
@@ -394,9 +394,7 @@ void	Taload(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.caload*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.saload*/
     OPERAND	* operand = (OPERAND *) malloc(sizeof(OPERAND));
-    thread->program_counter++;
     u2 index;
-    index = (u1) *(thread->program_counter);
     u4 *value = (u4*) malloc(sizeof(u4));
     void *reference;
     u4 f;
@@ -411,11 +409,9 @@ void	Taload(METHOD_DATA * method, THREAD * thread, JVM * jvm){
             // get index from operand_stack
             index = (thread->jvm_stack)->operand_stack->value;
             (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
-            (thread->jvm_stack)->operand_stack = operand;
             //get reference from operand_stack
             reference = (void *)(thread->jvm_stack)->operand_stack->value;
             (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
-            (thread->jvm_stack)->operand_stack = operand;
             //push array element into the operand_stack;
             if(*thread->program_counter == iaload || *thread->program_counter == aaload){
                 operand->value = ((u4 *)reference)[index];
@@ -435,14 +431,12 @@ void	Taload(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 
         case laload:
         case daload:
-        // get index from operand_stack
+            // get index from operand_stack
             index = (thread->jvm_stack)->operand_stack->value;
             (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
-            (thread->jvm_stack)->operand_stack = operand;
             //get reference from operand_stack
             reference = (void *)(thread->jvm_stack)->operand_stack->value;
             (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
-            (thread->jvm_stack)->operand_stack = operand;
             //push array element into the operand_stack;
             operand->value = ((u4 *)reference)[index];
             operand->prox = (thread->jvm_stack)->operand_stack;
@@ -455,6 +449,8 @@ void	Taload(METHOD_DATA * method, THREAD * thread, JVM * jvm){
             thread->program_counter++;
             break;
     }
+    free(operand);
+    free(value);
 }
 
 /*	INSTRUÇÕES QUE ARMAZENAM VALORES NO VETOR DE VARIAVEIS LOCAIS	*/
@@ -472,6 +468,103 @@ void	Tstore(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.fstore_n*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.dstore_n*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.astore_n*/
+    OPERAND	* operand = (OPERAND *) malloc(sizeof(OPERAND));
+    u2 index;
+    u4 value;
+    u4 high, low;
+    switch(*thread->program_counter)
+    {
+        case istore:
+        case fstore:
+        case astore:
+            thread->program_counter++;
+            index = (u1) *(thread->program_counter);
+            // get value from operand_stack
+            value = (thread->jvm_stack)->operand_stack->value;
+            (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
+            // store value into local variables
+            (thread->jvm_stack)->local_variables[index] = value;
+
+            thread->program_counter++;
+            break;
+
+        case lstore:
+        case dstore:
+            thread->program_counter++;
+            index = (u1) *(thread->program_counter);
+            // get high and low from operand_stack
+            low = (thread->jvm_stack)->operand_stack->value;
+            (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
+            high = (thread->jvm_stack)->operand_stack->value;
+            (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
+            // store high and lowinto local variables
+            (thread->jvm_stack)->local_variables[index] = high;
+            (thread->jvm_stack)->local_variables[index + 1] = low;
+
+            thread->program_counter++;
+            break;
+        case istore_0:
+        case istore_1:
+        case istore_2:
+        case istore_3:
+        case fstore_0:
+        case fstore_1:
+        case fstore_2:
+        case fstore_3:
+        case astore_0:
+        case astore_1:
+        case astore_2:
+        case astore_3:
+            if(*thread->program_counter == istore_0 || *thread->program_counter == fstore_0 || *thread->program_counter == astore_0){
+                index = 0;
+            }else if(*thread->program_counter == istore_1 || *thread->program_counter == fstore_1 || *thread->program_counter == astore_1){
+                index = 1;
+            }else if(*thread->program_counter == istore_2 || *thread->program_counter == fstore_2 || *thread->program_counter == astore_2){
+                index = 2;
+            }else if(*thread->program_counter == istore_3 || *thread->program_counter == fstore_3 || *thread->program_counter == astore_3){
+                index = 3;
+            }
+            // get value from operand_stack
+            value = (thread->jvm_stack)->operand_stack->value;
+            (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
+            // store value into local variables
+            (thread->jvm_stack)->local_variables[index] = value;
+
+            thread->program_counter++;
+            break;
+        case lstore_0:
+        case lstore_1:
+        case lstore_2:
+        case lstore_3:
+        case dstore_0:
+        case dstore_1:
+        case dstore_2:
+        case dstore_3:
+            if(*thread->program_counter == lstore_0 || *thread->program_counter == dstore_0){
+                index = 0;
+            }else if(*thread->program_counter == lstore_1 || *thread->program_counter == dstore_1){
+                index = 1;
+            }else if(*thread->program_counter == lstore_2 || *thread->program_counter == dstore_2){
+                index = 2;
+            }else if(*thread->program_counter == lstore_3 || *thread->program_counter == dstore_3){
+                index = 3;
+            }
+            // get value from operand_stack
+            value = (thread->jvm_stack)->operand_stack->value;
+            (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
+            // store value into local variables
+            (thread->jvm_stack)->local_variables[index] = value;
+
+            // get value from operand_stack
+            value = (thread->jvm_stack)->operand_stack->value;
+            (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
+            // store value into local variables
+            (thread->jvm_stack)->local_variables[index + 1] = value;
+
+            thread->program_counter++;
+            break;
+    }
+    free(operand);
 }
 
 // Tastore	0x4F a 0x56
@@ -485,6 +578,63 @@ void	Tastore(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.bastore*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.castore*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.sastore*/
+    OPERAND	* operand = (OPERAND *) malloc(sizeof(OPERAND));
+    u2 index;
+    u4 value;
+    void *reference;
+    u4 low, high;
+    switch(*thread->program_counter)
+    {
+        case iastore:
+        case fastore:
+        case aastore:
+        case bastore:
+        case castore:
+        case sastore:
+            // get value from operand_stack
+            value = (thread->jvm_stack)->operand_stack->value;
+            (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
+            // get index from operand_stack
+            index = (thread->jvm_stack)->operand_stack->value;
+            (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
+            // get reference from operand_stack
+            reference = (void *)(thread->jvm_stack)->operand_stack->value;
+            (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
+
+            if(*thread->program_counter == iastore || *thread->program_counter == fastore || *thread->program_counter == aastore){
+                ((u4*)reference)[index] = value;
+            }else if(*thread->program_counter == bastore){
+                ((u1*)reference)[index] = value;
+            }else if(*thread->program_counter == castore || *thread->program_counter == sastore){
+                ((u2*)reference)[index] = value;
+            }
+
+            thread->program_counter++;
+            break;
+
+        case lastore:
+        case dastore:
+            // get low from operand_stack
+            low = (thread->jvm_stack)->operand_stack->value;
+            (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
+            // get high from operand_stack
+            high = (thread->jvm_stack)->operand_stack->value;
+            (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
+            // get index from operand_stack
+            index = (thread->jvm_stack)->operand_stack->value;
+            (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
+            // get reference from operand_stack
+            reference = (void *)(thread->jvm_stack)->operand_stack->value;
+            (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
+
+            ((u4*)reference)[index] = high;
+            ((u4*)reference)[index + 1] = low;
+
+            thread->program_counter++;
+
+            break;
+    }
+    free(operand);
 }
 
 /*	MANIPULAÇÃO DA PILHA	*/
