@@ -702,7 +702,111 @@ void	handleStack(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.dup2*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.dup2_x1*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.dup2_x2*/
-	thread->program_counter++;
+    u4 value1, value2, value3, value4;
+    switch(*thread->program_counter)
+    {
+        case pop:
+            popOperand(thread->jvm_stack);
+            thread->program_counter++;
+            break;
+        case pop2:
+            popOperand(thread->jvm_stack);
+            popOperand(thread->jvm_stack);
+            thread->program_counter++;
+            break;
+        case dup:
+            // get value from operand_stack
+            value1 = popOperand(thread->jvm_stack);
+
+            //push value
+			pushOperand(value1, thread->jvm_stack);
+            pushOperand(value1, thread->jvm_stack);
+
+			thread->program_counter++;
+            break;
+        case dup_x1:
+            // get value from operand_stack
+            value1 = popOperand(thread->jvm_stack);
+            value2 = popOperand(thread->jvm_stack);
+
+            //push value
+            pushOperand(value1, thread->jvm_stack);
+            pushOperand(value2, thread->jvm_stack);
+            pushOperand(value1, thread->jvm_stack);
+
+			thread->program_counter++;
+            break;
+        case dup_x2:
+            // get value from operand_stack
+            value1 = popOperand(thread->jvm_stack);
+            value2 = popOperand(thread->jvm_stack);
+            value3 = popOperand(thread->jvm_stack);
+
+            //push value
+            pushOperand(value1, thread->jvm_stack);
+            pushOperand(value3, thread->jvm_stack);
+            pushOperand(value2, thread->jvm_stack);
+            pushOperand(value1, thread->jvm_stack);
+
+			thread->program_counter++;
+            break;
+        case dup2:
+            // get value from operand_stack
+            value1 = popOperand(thread->jvm_stack);
+            value2 = popOperand(thread->jvm_stack);
+
+            //push value
+            pushOperand(value2, thread->jvm_stack);
+            pushOperand(value1, thread->jvm_stack);
+            pushOperand(value2, thread->jvm_stack);
+            pushOperand(value1, thread->jvm_stack);
+
+			thread->program_counter++;
+            break;
+        case dup2_x1:
+            // get value from operand_stack
+            value1 = popOperand(thread->jvm_stack);
+            value2 = popOperand(thread->jvm_stack);
+            value3 = popOperand(thread->jvm_stack);
+
+            //push value
+            pushOperand(value2, thread->jvm_stack);
+            pushOperand(value1, thread->jvm_stack);
+            pushOperand(value3, thread->jvm_stack);
+            pushOperand(value2, thread->jvm_stack);
+            pushOperand(value1, thread->jvm_stack);
+
+			thread->program_counter++;
+            break;
+        case dup2_x2:
+            // get value from operand_stack
+            value1 = popOperand(thread->jvm_stack);
+            value2 = popOperand(thread->jvm_stack);
+            value3 = popOperand(thread->jvm_stack);
+            value4 = popOperand(thread->jvm_stack);
+
+            //push value
+            pushOperand(value2, thread->jvm_stack);
+            pushOperand(value1, thread->jvm_stack);
+            pushOperand(value4, thread->jvm_stack);
+            pushOperand(value3, thread->jvm_stack);
+            pushOperand(value2, thread->jvm_stack);
+            pushOperand(value1, thread->jvm_stack);
+
+			thread->program_counter++;
+            break;
+        case swap:
+            // get value from operand_stack
+            value1 = popOperand(thread->jvm_stack);
+            value2 = popOperand(thread->jvm_stack);
+
+            //push value
+            pushOperand(value1, thread->jvm_stack);
+            pushOperand(value2, thread->jvm_stack);
+
+			thread->program_counter++;
+            break;
+    }
 }
 
 /*	INSTRUÇÕES ARITMETICAS	*/
