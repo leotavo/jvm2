@@ -103,15 +103,17 @@ void	Tconst(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			}
 
 			if(!value){
-				operand->value = (u4) value;
+/*				operand->value = (u4) value;*/
+				pushOperand(0, thread->jvm_stack);
 			}
 			else{
-				operand->value = *value;
+/*				operand->value = *value;*/
+				pushOperand(*value, thread->jvm_stack);
 			}
 /*			printf("value = %" PRIX32 "\n", operand->value);*/
 
-			operand->prox = (thread->jvm_stack)->operand_stack;
-			(thread->jvm_stack)->operand_stack = operand;
+/*			operand->prox = (thread->jvm_stack)->operand_stack;*/
+/*			(thread->jvm_stack)->operand_stack = operand;*/
 
 			break;
 		case lconst_0:
@@ -168,7 +170,7 @@ void	Tconst(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 
 // Tipush	0x10 e 0x11
 //	carregam inteiros com sinal (short ou byte) na pilha
-void	Tipush(METHOD_DATA * method, THREAD * thread, JVM * jvm){
+void	Tipush(METHOD_DATA * method, THREAD * thread, JVM * jvm){ // TESTAR NEGATIVOS
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.bipush*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.sipush*/
 	OPERAND	* operand = (OPERAND *) malloc(sizeof(OPERAND));
@@ -181,10 +183,13 @@ void	Tipush(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		case bipush:
 			thread->program_counter++;
 			aux1 = (s1) *(thread->program_counter);
-			*value = (u4) aux1;
-			operand->value = *value;
-			operand->prox = (thread->jvm_stack)->operand_stack;
-			(thread->jvm_stack)->operand_stack = operand;
+			printf("\t%" PRId8, aux1);
+			pushOperand((u4) aux1, thread->jvm_stack);
+/*			printf("\n%" PRId32 "\n", ((thread->jvm_stack)->operand_stack)->value);*/
+/*			*value = (u4) aux1;*/
+/*			operand->value = *value;*/
+/*			operand->prox = (thread->jvm_stack)->operand_stack;*/
+/*			(thread->jvm_stack)->operand_stack = operand;*/
 			thread->program_counter++;
 			break;
 		case sipush:
@@ -361,12 +366,13 @@ void	Tload(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			*thread->program_counter == aload_3){
 				index = 3;
 			}
-			*value = (thread->jvm_stack)->local_variables[index];
 
-			operand->value = *value;
-			operand->prox = (thread->jvm_stack)->operand_stack;
-			(thread->jvm_stack)->operand_stack = operand;
-
+/*			*value = (thread->jvm_stack)->local_variables[index];*/
+			pushOperand((thread->jvm_stack)->local_variables[index], thread->jvm_stack);
+/*			operand->value = *value;*/
+/*			operand->prox = (thread->jvm_stack)->operand_stack;*/
+/*			(thread->jvm_stack)->operand_stack = operand;*/
+/*			printf("\n%" PRIu32 "\n", ((thread->jvm_stack)->operand_stack)->value);*/
 
 			thread->program_counter++;
 			break;
@@ -1160,6 +1166,22 @@ void	if_icmOP(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.if_icmpge*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.if_icmpgt*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.if_icmple*/
+	u1	branchbyte1 = * (thread->program_counter + 1);
+	u1	branchbyte2 = * (thread->program_counter + 2);
+	s2	branch = (branchbyte1 << 8) | branchbyte2;
+
+	printf("\t(%+" PRId16 ")", branch);
+	u4	value2	= popOperand(thread->jvm_stack);
+	u4	value1	= popOperand(thread->jvm_stack);
+
+	switch(* thread->program_counter){
+		case	if_icmpge:
+			if(value1 >= value2){
+				thread->program_counter += (branch - 3);
+			}
+			break;
+
+	}
 	thread->program_counter += 3;
 }
 
