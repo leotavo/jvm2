@@ -15,7 +15,7 @@
 //https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5
 
 
-// PONTEIRO PRA FUNÇÃO QUE VAI EXECUTAR A RESPECTIVA INSTRUÇÃO DA JVM
+// TIPO DE PONTEIRO PRA FUNÇÃO QUE VAI EXECUTAR A RESPECTIVA INSTRUÇÃO DA JVM
 typedef 	void (*INSTRUCTION)(METHOD_DATA *, THREAD *, JVM *);
 
 // ARRAY DE PONTEIROS PRA FUNÇÕES
@@ -23,6 +23,8 @@ extern	INSTRUCTION	func[];
 
 // INTERPRETADOR DE BYTECODES
 void	interpreter(METHOD_DATA	*, THREAD *, JVM * jvm);
+
+void	printStack(THREAD *);
 
 /*==========================================*/
 //	INSTRUÇÕES

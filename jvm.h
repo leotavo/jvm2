@@ -95,20 +95,24 @@ typedef	struct value{
 	}u;
 }VALUE;
 
+<<<<<<< HEAD
 // OPERAND
 typedef	struct operand{
-	u4		value;
-	struct operand	* prox;
+	u4	value;
+	TYPE	type;
+	struct operand 	* prox;
 }OPERAND;
 
 // FRAME
 typedef	struct frame{
 	u4		* local_variables;
 	OPERAND		* operand_stack;
-	cp_info		* current_class_constant_pool;
+	cp_info		* current_constant_pool;
 	VALUE		* return_value;
 	struct frame	* prox;
 }FRAME;
+
+
 
 // THREAD
 typedef	struct thread{
@@ -132,6 +136,7 @@ typedef	struct	field_data{
 	TYPE	field_type;
 	u2	modifiers;	// access_flags
 	field_info	* info;
+	struct variable	* var;
 }FIELD_DATA;
 
 // VARIABLE
@@ -148,7 +153,7 @@ typedef	struct	method_data{
 	cp_info	* method_name; // CONSTANT_Utf8
 	cp_info	* method_descriptor; // CONSTANT_Utf8
 	u2	modifiers;	// access_flags
-
+	struct class_data	* class_data;
 	// se o método não é abstrato.
 	u4	code_length;
 	u1	* bytecodes; // instruções da jvm
@@ -201,12 +206,20 @@ void	classLinkingVerification(CLASS_DATA *, JVM *);
 void	classLinkingPreparation(CLASS_DATA *, JVM *);
 void	classLinkingResolution(ClassFile *, JVM *);
 void	classInitialization(CLASS_DATA *, JVM *, THREAD *);
-void	executeMethod(char *, CLASS_DATA *, JVM *, THREAD *);
+void	executeMethod(char *, CLASS_DATA *, JVM *, THREAD *, void *, u2, u4 *);
 void	classUnloading(CLASS_DATA *, JVM *);
 attribute_info	* getCodeAttribute(METHOD_DATA *, CLASS_DATA *);
+char	*	getClassName(CLASS_DATA *);
+CLASS_DATA	* getSuperClass(ClassFile *, JVM *);
+CLASS_DATA	* getClass(cp_info *, JVM *);
 void	jvmExit(JVM *);
 void	PrintConstantUtf8(cp_info *, FILE *);
+VARIABLE	* getClassVariable(cp_info *, CLASS_DATA *);
+METHOD_DATA	* getMethod(char *, CLASS_DATA *);
+bool		isSuperClass(CLASS_DATA *, CLASS_DATA *);
 
+void	pushOperand(u4, FRAME *);
+u4	popOperand(FRAME *);
 
 
 

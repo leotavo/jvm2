@@ -1,3 +1,107 @@
+MASTER ATUALIZADA. FAÇAM CLONE DELA ANTES DE FAZER CÒDIGO NOVO (01/12)
+ESCREVAM NO README QUAL FUNCAO VCS ESTAO MEXENDO!!!
+
+Corretude do interpretador:
+
+( ) arrays simples; => Taload, Tastore, handleObject
+( ) array length; => handleObject
+( ) inteiros; => todas as instruções com byte, char, short, int
+( ) floats; => todas as instruções com float
+( ) desvios com cat 1; => jump, widejump, ifOP, if_icmOP, if_acmOP, ifnull
+( ) recursao; => invoke
+( ) metodos estaticos; => invoke
+( ) operações de retorno; => Treturn
+( ) operações lógicas com cat 1; => Tneg, Tand, Tor, Txor
+( ) operações de deslocamento com cat 1; => Tshl, Tshr, Tushr
+( ) operações de manipulação de pilha; => Tload, Taload, Tstore, Tastore, Tipush, ldc_, Tconst, accessField, handleStack
+( ) iteracao e case => switch_
+( ) arrays multidimensionais; => Taload, Tastore, handleObject
+( ) arrays de referência; => Taload, Tastore, handleObject
+( ) objetos; => handleObject
+( ) métodos não estaticos; => invoke
+( ) longs; => todas as instruções com long
+( ) doubles; = todas as instruções com doubles
+( ) operações aritmeticas de cat 2; => Tadd, Tsub, Tmul, Tdiv, Trem.
+( ) operações de deslocamento de long; => Tshl, Tshr, Tushr
+( ) system.out.println (int, float, string, booleano); => invokespecial
+( ) conversao de e para cat 2; => i2T, l2T, f2T, d2T
+( ) strings; => ????
+( ) interfaces; => ????
+
+
+
+(X) leitura do formato .class (30% do interpretador)
+
+opcionais:
+- Todas as demais instruções.
+( ) threads;
+( ) debugs; => breakpoint
+( ) chamada às bibliotecas java;
+( ) tratamento de exceções; => athrow, try_catch (tratamento de métodos)
+( ) checagem dinâmica de tipos; => properties
+( ) coletor de lixo; (monitoramento da heap)
+
+SITUAÇÃO ATUAL:
+
+Interpreter:
+FALTA:
+Tstore
+Tastore
+Tmul
+Tdiv
+Trem
+Tneg
+Tshl
+Tshr
+Tushr
+Tand
+Tor
+Txor
+Tinc
+i2T
+l2T
+f2T
+d2T
+Tcmp
+TcmpOP
+ifOP
+if_icmOP
+if_acmOP
+jump
+switch_
+Treturn => return OK
+accessField => (LEO) getstatic e putstatic ok
+invoke => (LEO) implementada a resolução e controle de acesso aos métodos.
+handleObject
+athrow_
+properties
+monitor
+ifnull
+widejump
+breakpoint
+nonDefined
+impdep
+
+
+Loading: 
+=> o que falta: 
+- Herança (herdar campos e metodos de superclasses) => FAZER EM TEMPO DE EXECUÇÃO, NA CHAMADA DE INSTRUCOES QUE REQUEIRAM FIELDS OU METODOS
+- inicializar fields com constant_value; = FAZER EM TEMPO DE EXECUÇÃO
+
+LinkingVerification:
+=> o que falta:
+- verificar outras regras da linguagem java que possam estar sendo violadas no classfile.
+- bytecodeVerifier: // FAZER EM TEMPO DE EXECUÇÃO
+-- verificar se as instruções da JVM estao coerentes quanto aos operandos, pilha, vetor de variaveis locais, etc.
+-- verificar inicialização de variaveis locais;
+-- atribuição de valores à fields
+-- metodo invocado com o correto numero e tipo de argumentos;
+
+
+LinkingResolution
+- resolve referências simbólicas durante a execução do interpretador
+
+
 Compilação:
 $ gcc -std=c99 *.c -o jvm
 
@@ -11,47 +115,6 @@ args = array de strings, argumento do método main da classe de entrada. (opcion
 Testes Prontos:
 Linux
 $ ./teste.sh
-
-
-SITUAÇÃO ATUAL:
-Loading: 
-- le o arquivo .class principal, e armazena no tipo classfile;
-- cria o class_data dentro da method_area, armazenando as informações do classfile;
-- cria uma instância da classe principal, e armazena no heap;
-- cria variáveis de classe (static fields) e variáveis de instância;
-- verifica erros estruturais no classfile (ausência ou extra bytes, versão suportada)
-=> o que falta: 
-- Herança (herdar campos e metodos de superclasses) => FAZER EM TEMPO DE EXECUÇÃO, NA CHAMADA DE INSTRUCOES QUE REQUEIRAM FIELDS OU METODOS
-- inicializar fields com constant_value; = FAZER EM TEMPO DE EXECUÇÃO
-
-LinkingVerification:
-- verifica erros semânticos no classfile (índices para constantpool, descritores corretos, access_flags, atributos corretos)
-- verifica se superclasse final não é herdada; (TESTAR)
-- verifica se método final não é sobrecarregado; (TESTAR)
-- verifica se toda classe (exceto Object) possui uma superclasse
-=> o que falta:
-- verificar outras regras da linguagem java que possam estar sendo violadas no classfile.
-- bytecodeVerifier: // FAZER EM TEMPO DE EXECUÇÃO
--- verificar se as instruções da JVM estao coerentes quanto aos operandos, pilha, vetor de variaveis locais, etc.
--- verificar inicialização de variaveis locais;
--- atribuição de valores à fields
--- metodo invocado com o correto numero e tipo de argumentos;
-
-Initialization: 
-- inicializa a superclasse direta;
-- executa o método construtor da classe; // IGNORAR O METODO <INIT> de java/lang/Object
-
-Interpreter:
-- começa a executar o método main da classe principal
-- implementada lógica do interpretador e definidos os prototipos das funções das instruções da jvm.
-FALTA:
-- implementar as funções
-
-LinkingResolution
-- resolve referências simbólicas durante a execução do interpretador
-
-
-
 
 
 Links úteis (Quem tiver algum link útil, coloque aqui):

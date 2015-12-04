@@ -61,7 +61,7 @@ https://docs.oracle.com/javase/specs/jvms/se6/html/Concepts.doc.html#19042
 		puts("ERROR: method 'main' not find.");
 		exit(EXIT_FAILURE);
 	}
-	executeMethod("main", main_class_data, jvm, main_thread);
+	executeMethod("main", main_class_data, jvm, main_thread, NULL, (u2) num_args, (u4 *) args);
 	
 	classUnloading(main_class_data, jvm);
 	jvmExit(jvm);
@@ -81,13 +81,20 @@ The loading process consists of three basic activities. To load a type, the Java
 /*	puts("DEBUG:\tCRIANDO CLASSFILE");*/
 	FILE	* class_binary_file;
 	ClassFile	* cf;
-	
-	class_binary_file = fopen(class_filename, "r");
+	char *	class = ".class";
+/*	if(!strstr(class_filename, ".class\0")){*/
+/*		class_binary_file = fopen(strcat(class_filename, class), "r");	*/
+/*	}*/
+/*	else{*/
+		class_binary_file = fopen(class_filename, "r");
+/*	}*/
+
 	if(!class_binary_file){
 		puts("ClassNotFoundException");
 		exit(EXIT_FAILURE);
 	}
 	else{
+		printf("Carregando %s\n", class_filename);
 		cf = loadClassFile(class_binary_file);
 	}
 /*	puts("DEBUG:\tCRIANDO CLASS_DATA");*/
@@ -133,6 +140,8 @@ The loading process consists of three basic activities. To load a type, the Java
 		((*cd)->method_data + i)->method_descriptor = cf->constant_pool + (cf->methods + i)->descriptor_index - 1;
 		((*cd)->method_data + i)->modifiers = (cf->methods + i)->access_flags;
 		((*cd)->method_data + i)->info = (cf->methods + i);
+		((*cd)->method_data + i)->class_data = (*cd);
+		
 		if(*(((*cd)->method_data + i)->method_descriptor)->u.Utf8.bytes != '('){
 			puts("VerifyError: method descriptor");
 			exit(EXIT_FAILURE);		
@@ -143,7 +152,7 @@ The loading process consists of three basic activities. To load a type, the Java
 			exit(EXIT_FAILURE);
 		}
 		
-		if(!(((*cd)->method_data + i)->modifiers & ACC_ABSTRACT)){
+		if(!(((*cd)->method_data + i)->modifiers & ACC_ABSTRACT) && !(((*cd)->method_data + i)->modifiers & ACC_NATIVE)){
 			attribute_info	* code_attr = getCodeAttribute((*cd)->method_data + i, *cd);
 			if(!code_attr){
 				puts("VerifyError: No code attribute");
@@ -222,56 +231,55 @@ Preparation: allocating memory for class variables and initializing the memory t
 		for(u2 i = 0; i < (cd->classfile)->fields_count; i++){
 			VARIABLE	* var = (VARIABLE *) malloc(sizeof(VARIABLE));
 			var->field_reference = cd->field_data + i;
+			(cd->field_data + i)->var = var;
 			
-			VALUE	* value = (VALUE *) malloc(sizeof(VALUE));
 			u2	descriptor_index = ((cd->field_data + i)->info)->descriptor_index;
-			value->type = (cd->runtime_constant_pool + descriptor_index - 1)->u.Utf8.bytes[0];
-/*			printf("DEBUG:\tvalue->type = %c\n", value->type);*/
-			switch(value->type){
+			(var->value).type = (cd->runtime_constant_pool + descriptor_index - 1)->u.Utf8.bytes[0];
+/*			printf("DEBUG:\t(var->value).type = %c\n", (var->value).type);*/
+			switch((var->value).type){
 				case	BOOLEAN:
-					value->u.Boolean.boolean = 0;
+					(var->value).u.Boolean.boolean = 0;
 					break;
 				case	BYTE:
-					value->u.Byte.byte = 0;
+					(var->value).u.Byte.byte = 0;
 					break;
 				case	CHAR:
-					value->u.Char.char_ = 0;
+					(var->value).u.Char.char_ = 0;
 					break;
 				case	DOUBLE:
-					value->u.Double.high_bytes = 0;
-					value->u.Double.low_bytes = 0;
+					(var->value).u.Double.high_bytes = 0;
+					(var->value).u.Double.low_bytes = 0;
 					break;
 				case	FLOAT:
-					value->u.Float.float_ = 0;
+					(var->value).u.Float.float_ = 0;
 					break;
 				case	INT:
-					value->u.Integer.integer = 0;
+					(var->value).u.Integer.integer = 0;
 					break;
 				case	LONG:
-					value->u.Long.high_bytes = 0;
-					value->u.Long.low_bytes = 0;
+					(var->value).u.Long.high_bytes = 0;
+					(var->value).u.Long.low_bytes = 0;
 					break;
 				case	REF_INST:
-					value->u.InstanceReference.reference = NULL;
+					(var->value).u.InstanceReference.reference = NULL;
 					break;
 				case	SHORT:
-					value->u.Short.short_ = 0;
+					(var->value).u.Short.short_ = 0;
 					break;
 				case	REF_ARRAY:
-					value->u.ArrayReference.reference = NULL;
+					(var->value).u.ArrayReference.reference = NULL;
 					break;
 				default:
 					puts("VerifyError: Unknown type");
 					exit(EXIT_FAILURE);
 			}
 			u2	access_flags = (cd->field_data + i)->modifiers;
-			if(!(access_flags & ACC_FINAL)){
+/*			if(!(access_flags & ACC_FINAL)){*/
 				if((access_flags & ACC_STATIC) || ((cd->classfile)->access_flags & ACC_INTERFACE)){		
-/*					puts("DEBUG:\tCLASS_VARIABLE");*/
 					var->prox = cd->class_variables;
 					cd->class_variables = var;
 				}
-			}
+/*			}*/
 /*			else{*/
 /*/*				puts("DEBUG:\tINSTANCE_VARIABLE");*/
 /*				var->prox = obj->instance_variables;*/
@@ -293,11 +301,81 @@ Resolution: transforming symbolic references from the type into direct reference
 /*==========================================*/
 // função getClassName
 char	*	getClassName(CLASS_DATA * cd){
- 	cp_info	* cp_aux = (cd->classfile)->constant_pool + (cd->classfile)->this_class - 1;
+ 	cp_info	* cp_aux = cd->class_name;
  	char	* class_name = cp_aux->u.Utf8.bytes;
  	class_name[cp_aux->u.Utf8.length] = '\0';
  	return	class_name;
  }
+ 
+ /*==========================================*/
+// função getSuperClass
+CLASS_DATA	* getSuperClass(ClassFile * cf, JVM * jvm){
+	if(cf->super_class){
+		cp_info	* cp_aux = cf->constant_pool + cf->super_class - 1;
+		cp_aux = cf->constant_pool + cp_aux->u.Class.name_index - 1;
+		char	* super_name = cp_aux->u.Utf8.bytes;
+		super_name[cp_aux->u.Utf8.length] = '\0';
+		if(strcmp(super_name, "java/lang/Object")){
+			CLASS_DATA	* cd = jvm->method_area;
+/*			printf("length = %" PRIu16 "\n", (cd->class_name)->u.Utf8.length);*/
+			while(cd){
+				char	* name = (cd->class_name)->u.Utf8.bytes;
+				name[(cd->class_name)->u.Utf8.length] = '\0';
+				if(!strcmp(super_name, name)){
+					return	cd;
+				}
+				else{
+					cd = cd->prox;
+				}	
+			}
+		}
+	}
+	return	NULL;
+}// fim da função getSuperClass
+
+/*==========================================*/
+// funcao getClass
+CLASS_DATA	* getClass(cp_info * cp_class_name, JVM * jvm){
+	char	* class_name = cp_class_name->u.Utf8.bytes;
+	class_name[cp_class_name->u.Utf8.length] = '\0';
+	
+	CLASS_DATA	* cd = jvm->method_area;
+	while(cd){
+		char	* cd_class_name = getClassName(cd);
+		if(!strcmp(class_name, cd_class_name)){
+			return	cd;
+		}
+		else{
+			cd = cd->prox;
+		}
+	}
+	return	NULL;
+}
+
+/*==========================================*/
+// funcao getClassVariable
+VARIABLE	* getClassVariable(cp_info * cp_field_name, CLASS_DATA * field_class){
+	VARIABLE	* cv = field_class->class_variables;
+	
+	while(cv){
+		FIELD_DATA	* fr = cv->field_reference;
+		
+		char	*string1 = cp_field_name->u.Utf8.bytes;
+		string1[cp_field_name->u.Utf8.length];
+		
+		char	*string2 = ((cv->field_reference)->field_name)->u.Utf8.bytes;
+		string2[((cv->field_reference)->field_name)->u.Utf8.length];
+		if(!strcmp(string1, string2)){
+			return	cv;
+		}
+		else{
+			cv = cv->prox;
+		}
+	}
+	return	NULL;
+
+}
+
 /*==========================================*/
 // função classInitialization
 void	classInitialization(CLASS_DATA * cd, JVM * jvm, THREAD * thread){
@@ -312,26 +390,28 @@ Executing the class's class initialization method, if it has one
 		cp_info	* cp_aux = (cd->classfile)->constant_pool + (cd->classfile)->super_class - 1;
 		cp_aux = (cd->classfile)->constant_pool + cp_aux->u.Class.name_index - 1;
 		char	* super_class_name = cp_aux->u.Utf8.bytes;
-		super_class_name[cp_aux->u.Utf8.length] = '\0';
+/*		super_class_name[cp_aux->u.Utf8.length] = '\0';*/
 /*		printf("Super class:\t");*/
 /*		PrintConstantUtf8(cp_aux, stdout);*/
 /*		puts("");*/
-		if(strcmp(super_class_name, "java/lang/Object")){
+/*		if(strcmp(super_class_name, "java/lang/Object")){*/
 			CLASS_DATA	* cd_super;
-			if(!(cd_super = getSuperClass(cd->classfile, jvm))){
+/*			if(!(cd_super = getSuperClass(cd->classfile, jvm))){*/
+			if(!(cd_super = getClass(cp_aux, jvm))){
 				classLoading(strcat(super_class_name, ".class"), &cd_super, cd, jvm);
 			}
 			classLinking(cd_super, jvm);
 			classInitialization(cd_super, jvm, thread);
-		}
-		executeMethod("<clinit>", cd, jvm, thread);			
-	}	
+/*		}*/
+	}
+	executeMethod("<clinit>", cd, jvm, thread, NULL, 0, NULL);	
 }// fim da função classInitialization
 
 /*==========================================*/
 // função getMethod
 METHOD_DATA	* getMethod(char * method_name, CLASS_DATA * cd){
 	char *	name;
+
 	for(u2	i = 0; i < (cd->classfile)->methods_count; i++){
 		name = ((cd->method_data + i)->method_name)->u.Utf8.bytes;
 		name[((cd->method_data + i)->method_name)->u.Utf8.length] = '\0';
@@ -360,14 +440,12 @@ attribute_info	* getCodeAttribute(METHOD_DATA * method, CLASS_DATA * cd){
 
 /*==========================================*/
 // função execute
-void	executeMethod(char * method_name, CLASS_DATA * cd, JVM * jvm, THREAD * thread){
-/*	puts("Classe: ");*/
-/*	PrintConstantUtf8(cd->class_name, stdout);*/
-/*	printf("\n\tmétodo %s\n", method_name);*/
+void	executeMethod(char * method_name, CLASS_DATA * cd, JVM * jvm, THREAD * thread, void * this, u2 nargs, u4 * args){
+	
 	METHOD_DATA	* method = getMethod(method_name, cd);
 	if(method){
 		if(method->modifiers & ACC_ABSTRACT){
-			puts("ERROR: executing abstract method.");
+			puts("ERROR: IllegalAccessError");
 			exit(EXIT_FAILURE);
 		}
 		attribute_info	* code_attr = getCodeAttribute(method, cd);
@@ -375,14 +453,39 @@ void	executeMethod(char * method_name, CLASS_DATA * cd, JVM * jvm, THREAD * thre
 			// CRIA NOVO FRAME PRO MÉTODO
 			FRAME	* frame = (FRAME *) malloc(sizeof(FRAME));
 			frame->local_variables = (u4 *) malloc(method->locals_size * sizeof(u4));
+			
+			u2	index = 0;
+			if(!(method->modifiers & ACC_STATIC)){
+				frame->local_variables[0] = (u4) this;
+				index = 1;
+			}
+			if((index + nargs) > method->locals_size){
+				puts("LocalsOutofBoundsError");
+				exit(EXIT_FAILURE);
+			}
+			for(u2 pos_arg = 0; pos_arg < nargs; pos_arg++, index++){
+				frame->local_variables[index] = args[pos_arg];
+			}
+			
+			if(nargs){
+				free(args);
+			}
+			
 			frame->operand_stack = NULL;
-			frame->current_class_constant_pool = cd->runtime_constant_pool;
+			frame->current_constant_pool = cd->runtime_constant_pool;
 			frame->return_value = NULL;
 			frame->prox = thread->jvm_stack;
 			thread->jvm_stack = frame;
 			
+			printf("\nmétodo: ");
+			PrintConstantUtf8(cd->class_name, stdout);
+			printf(".%s\n", method_name);
 			// CHAMA O INTERPRETADOR
 			interpreter(method, thread, jvm);
+			printf("\nEnd\t");
+			PrintConstantUtf8(cd->class_name, stdout);
+			printf(".%s\n", method_name);
+			
 		}
 		else{
 			puts("ERROR: non-abstract method without code attribute.");
@@ -415,4 +518,26 @@ void	jvmExit(JVM * jvm){
 }// fim da funçao jvmExit
 /*==========================================*/
 
+void	pushOperand(u4 word, FRAME * frame){
+	OPERAND	* aux = (OPERAND *) malloc(sizeof(OPERAND));
+	
+	aux->value = word;
+	aux->prox = frame->operand_stack;
+	frame->operand_stack = aux;
+}
 
+u4	popOperand(FRAME * frame){
+	if(frame->operand_stack){
+		OPERAND	* aux = frame->operand_stack;
+		frame->operand_stack = aux->prox;
+		u4	word = aux->value;
+		free(aux);
+		return	word;
+	}
+	else{
+		puts("StackUnderflowError");
+		exit(EXIT_FAILURE);
+	}
+}
+
+bool		isSuperClass(CLASS_DATA * cd1, CLASS_DATA * cd2){}
