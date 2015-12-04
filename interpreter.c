@@ -935,11 +935,67 @@ void	Tushr(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lushr*/
 }
 
+
 // Tand		0x7E e 0x7F
 //	Instruções And bit a bit
 void	Tand(METHOD_DATA * method, THREAD * thread, JVM * jvm){
-/*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.iand*/
-/*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.land*/
+		u4 value,aux1,aux2;
+		int32_t first_operand, second_operand, result;
+		int64_t oper1,oper2;
+	   OPERAND	* operand = (OPERAND *) malloc(sizeof(OPERAND));
+switch(*thread->program_counter) {
+	
+		// INSTRUÇÃO IAND
+		case iand:
+			// Desempilha operando
+		popOperand(thread->jvm_stack);
+			first_operand = (int32_t) value;
+			// Desempilha operando
+	    popOperand(thread->jvm_stack);
+			second_operand = (int32_t) value;
+			// Empilha resultado
+		result = first_operand &= second_operand;
+		pushOperand(result, thread->jvm_stack);
+			thread->program_counter++;
+			break;
+		
+		//Intrução LAND
+		case land:
+
+        //Desempilha aux2
+		popOperand(thread->jvm_stack);
+			aux2 = (int32_t) value;
+
+        //Desempilha oper1
+		popOperand(thread->jvm_stack);
+			oper1 = (signed)(int32_t) value;
+
+			oper1 = oper1 << 32;
+			oper1 |= aux1;
+			
+        //Desempilha aux2
+		popOperand(thread->jvm_stack);
+			aux2 = (signed)(int32_t) value;
+			
+        //Desempilha oper2
+		popOperand(thread->jvm_stack);
+			oper2 = (signed)(int32_t) value;
+
+			oper2 = oper2 << 32;
+			oper2 |= aux2;
+			oper1 = oper2 &= oper1;
+			aux1 = oper1 >> 32;
+		
+		//Empilha aux1	
+			pushOperand(aux1, thread->jvm_stack);
+
+			aux1 = oper1 & 0xffffffff;
+
+        //Empilha aux1
+		    pushOperand(aux1, thread->jvm_stack);
+			thread->program_counter++;
+			break;
+}
 }
 
 // Tor		0x80 e 0x81
