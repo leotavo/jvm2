@@ -1195,7 +1195,6 @@ void	Tneg(METHOD_DATA * method, THREAD * thread, JVM * jvm){
             thread->program_counter++;
             break;
         }
-            break;
         case dneg:{
             u8 double_value;
             s8 value;
@@ -1207,7 +1206,7 @@ void	Tneg(METHOD_DATA * method, THREAD * thread, JVM * jvm){
             value = (((s8) high) << 32) + low;
 				switch(value){
 					case 0x7ff0000000000000L:
-						printf("\n\t\tDouble:\t\t\t+∞\n\n");
+						//printf("\n\t\tDouble:\t\t\t+∞\n\n");
 						break;
 					case 0xfff0000000000000L:
 						//printf("\n\t\tDouble:\t\t\t-∞\n\n");
@@ -1228,7 +1227,7 @@ void	Tneg(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					}
 				}
 
-            //copy bits from double_value into value
+            //copy bits from value into double_value
             memcpy(&double_value, &value, sizeof(u8));
 
             high = double_value >> 32;
@@ -1305,6 +1304,111 @@ void	i2T(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.i2b*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.i2c*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.i2s*/
+switch(*thread->program_counter)
+    {
+        case i2l:{
+            u1 isNegative;
+            u4 value, high, low;
+            s8 long_value;
+
+            value = popOperand(thread->jvm_stack);
+
+            isNegative = (u1)(value >> 31);
+
+            long_value = (s8) value;
+
+            if(isNegative){
+                    long_value = long_value | 0xffffffff00000000;
+            }
+
+            high = long_value >> 32;
+            low = long_value & 0xffffffff;
+
+            pushOperand(high, thread->jvm_stack);
+            pushOperand(low, thread->jvm_stack);
+
+            thread->program_counter++;
+            break;
+        }
+        case i2f:{
+            float float_value;
+            u4 value;
+
+            value = popOperand(thread->jvm_stack);
+            //copy bits from value into float_value
+            memcpy(&float_value, &value, sizeof(u4));
+            //copy bits from float_value into value
+            memcpy(&value, &float_value, sizeof(u4));
+
+            pushOperand(value, thread->jvm_stack);
+
+            thread->program_counter++;
+            break;
+        }
+        case i2d:{
+
+            u8 double_value;
+            s8 value = 0;
+            u4 high, low;
+
+            low = popOperand(thread->jvm_stack);
+
+            value += low;
+				switch(value){
+					case 0x7ff0000000000000L:
+						//printf("\n\t\tDouble:\t\t\t+∞\n\n");
+						break;
+					case 0xfff0000000000000L:
+						//printf("\n\t\tDouble:\t\t\t-∞\n\n");
+						break;
+					default:
+					if((value >= 0x7ff0000000000001L && value <= 0x7ffffffffffffL) ||
+					(value >= 0xfff0000000000001L && value <= 0xffffffffffffffffL )){
+						//printf("\n\t\tDouble:\t\t\tNaN\n\n");
+					}
+					else{
+						s4 s = ((value >> 63) == 0) ? 1 : -1;
+						s4 e = ((value >> 52) & 0x7ffL);
+						s8 m = (e == 0) ?
+						(value & 0xfffffffffffffL) << 1 :
+						(value & 0xfffffffffffffL) | 0x10000000000000L;
+						value = -s*m*pow(2, (e-1075));
+						//printf("\n\t\tDouble:\t\t\t%f\n\n", (double) s*m*pow(2, (e-1075)));
+					}
+				}
+
+            //copy bits from value into double_value
+            memcpy(&double_value, &value, sizeof(u8));
+
+            high = double_value >> 32;
+            low = double_value & 0xffffffff;
+
+            pushOperand(high, thread->jvm_stack);
+            pushOperand(low, thread->jvm_stack);
+
+            thread->program_counter++;
+            break;
+        }
+        case i2b:{
+            s4 value;
+            value = (s4)((s1) popOperand(thread->jvm_stack));
+
+            pushOperand((u4)value, thread->jvm_stack);
+
+            thread->program_counter++;
+            break;
+        }
+        case i2c:
+        case i2s:{
+            s4 value;
+            value = (s4)((s2) popOperand(thread->jvm_stack));
+
+            pushOperand((u4)value, thread->jvm_stack);
+
+            thread->program_counter++;
+            break;
+        }
+    }
 }
 
 // l2T		0x88 a 0x8A
@@ -1313,6 +1417,108 @@ void	l2T(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.l2i*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.l2f*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.l2d*/
+    switch(*thread->program_counter)
+    {
+        case l2i:{
+            u4 high, low;
+            high = popOperand(thread->jvm_stack);
+            low = popOperand(thread->jvm_stack);
+
+            pushOperand(low, thread->jvm_stack);
+
+            thread->program_counter++;
+            break;
+        }
+        case l2f:{
+            u8 double_value;
+            s8 value;
+            u4 high, low, aux;
+            float float_value;
+
+            low = popOperand(thread->jvm_stack);
+            high = popOperand(thread->jvm_stack);
+
+            value = (((s8) high) << 32) + low;
+				switch(value){
+					case 0x7ff0000000000000L:
+						//printf("\n\t\tDouble:\t\t\t+∞\n\n");
+						break;
+					case 0xfff0000000000000L:
+						//printf("\n\t\tDouble:\t\t\t-∞\n\n");
+						break;
+					default:
+					if((value >= 0x7ff0000000000001L && value <= 0x7ffffffffffffL) ||
+					(value >= 0xfff0000000000001L && value <= 0xffffffffffffffffL )){
+						//printf("\n\t\tDouble:\t\t\tNaN\n\n");
+					}
+					else{
+						s4 s = ((value >> 63) == 0) ? 1 : -1;
+						s4 e = ((value >> 52) & 0x7ffL);
+						s8 m = (e == 0) ?
+						(value & 0xfffffffffffffL) << 1 :
+						(value & 0xfffffffffffffL) | 0x10000000000000L;
+						value = -s*m*pow(2, (e-1075));
+						//printf("\n\t\tDouble:\t\t\t%f\n\n", (double) s*m*pow(2, (e-1075)));
+					}
+				}
+
+            //copy bits from value into double_value
+            memcpy(&double_value, &value, sizeof(u8));
+
+            float_value = (float) double_value;
+
+            memcpy(&aux, &float_value, sizeof(u4));
+
+            pushOperand(aux, thread->jvm_stack);
+
+            thread->program_counter++;
+            break;
+        }
+        case l2d:{
+            u8 double_value;
+            s8 value;
+            u4 high, low;
+
+            low = popOperand(thread->jvm_stack);
+            high = popOperand(thread->jvm_stack);
+
+            value = (((s8) high) << 32) + low;
+				switch(value){
+					case 0x7ff0000000000000L:
+						//printf("\n\t\tDouble:\t\t\t+∞\n\n");
+						break;
+					case 0xfff0000000000000L:
+						//printf("\n\t\tDouble:\t\t\t-∞\n\n");
+						break;
+					default:
+					if((value >= 0x7ff0000000000001L && value <= 0x7ffffffffffffL) ||
+					(value >= 0xfff0000000000001L && value <= 0xffffffffffffffffL )){
+						//printf("\n\t\tDouble:\t\t\tNaN\n\n");
+					}
+					else{
+						s4 s = ((value >> 63) == 0) ? 1 : -1;
+						s4 e = ((value >> 52) & 0x7ffL);
+						s8 m = (e == 0) ?
+						(value & 0xfffffffffffffL) << 1 :
+						(value & 0xfffffffffffffL) | 0x10000000000000L;
+						value = -s*m*pow(2, (e-1075));
+						//printf("\n\t\tDouble:\t\t\t%f\n\n", (double) s*m*pow(2, (e-1075)));
+					}
+				}
+
+            //copy bits from value into double_value
+            memcpy(&double_value, &value, sizeof(u8));
+
+            high = double_value >> 32;
+            low = double_value & 0xffffffff;
+
+            pushOperand(high, thread->jvm_stack);
+            pushOperand(low, thread->jvm_stack);
+
+            thread->program_counter++;
+            break;
+        }
+    }
 }
 
 // f2T		0x8B a 0x8D
