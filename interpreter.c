@@ -1295,6 +1295,8 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 
 	// descritor do método
 	cp_info	* cp_method_descriptor = cp + cp_name_and_type->u.NameAndType.descriptor_index - 1;
+	char	* method_descriptor = cp_method_descriptor->u.Utf8.bytes;
+	method_descriptor[cp_method_descriptor->u.Utf8.length] = '\0';
 /*	printf("cp_method_descriptor: ");*/
 /*	PrintConstantUtf8(cp_method_descriptor, stdout);*/
 /*	puts("");*/
@@ -1339,10 +1341,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					exit(EXIT_FAILURE);
 				}
 			}
-			
-			
 			// restriçao static
-		
 		}
 		else if(!invoked_method->modifiers){// SE O MÉTODO É DEFAULT
 			if((method->class_data)->classloader_reference != (method_class)->classloader_reference){
@@ -1366,27 +1365,76 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			
 		}
 	}
-
-/*	if(!method_class){*/
-/*		puts("\nNoSuchMethodError");*/
-/*		exit(EXIT_FAILURE);*/
-/*	}*/
-	
-/*	if(method_class->modifiers & ACC_INTERFACE){// se a classe do método for interface.*/
-/*		puts("\nIncompatibleClassChangeError");*/
-/*		exit(EXIT_FAILURE);*/
-/*	}*/
-	// faltando
-	
-	
 	switch(* thread->program_counter){// PARA TESTAR O HELLOWORLD
-		case	invokespecial:
-			break;
 		case	invokevirtual:
 			if(is_print){
 				break;
+			}			
+			break;
+		case	invokespecial:
+			break;
+		case	invokestatic:
+			if((!strcmp(method_name, "<init>")) || (!strcmp(method_name, "<clinit>"))){
+				puts("InvokeStaticInitError");
+				exit(EXIT_FAILURE);				
 			}
-			
+			if(!(invoked_method->modifiers & ACC_STATIC) || (invoked_method->modifiers & ACC_ABSTRACT)){
+				puts("IllegalAccessError");
+				exit(EXIT_FAILURE);
+			}
+			u2	nargs = 0;
+			u4	* args = (u4 *) malloc(invoked_method->locals_size * sizeof(u4));
+			u2	i = 1;
+			while(method_descriptor[i] != ')'){
+				switch(method_descriptor[i]){
+					case	REF_INST:
+						while(method_descriptor[i] != ';'){
+							i++;
+						}
+					case	BOOLEAN:
+					case	BYTE:
+					case	CHAR:
+					case	FLOAT:
+					case	INT:
+					case	SHORT:
+						args[nargs] = popOperand(thread->jvm_stack);
+						nargs++;
+						break;
+					case	LONG:
+					case	DOUBLE:
+						args[nargs] = popOperand(thread->jvm_stack);
+						nargs++;
+						args[nargs] = popOperand(thread->jvm_stack);
+						nargs++;
+						break;
+					case	REF_ARRAY:
+						while(method_descriptor[i] == '['){
+							i++;
+						}
+						switch(method_descriptor[i]){
+							case	REF_INST:
+								while(method_descriptor[i] != ';'){
+									i++;
+								}
+							case	BOOLEAN:
+							case	BYTE:
+							case	CHAR:
+							case	FLOAT:
+							case	INT:
+							case	SHORT:
+							case	LONG:
+							case	DOUBLE:
+								args[nargs] = popOperand(thread->jvm_stack);
+								nargs++;
+								break;	
+						}
+						break;
+				}
+				i++;
+			}
+			backupPC = thread->program_counter;
+			executeMethod(method_name, method_class, jvm, thread, NULL, nargs, args);
+			thread->program_counter = backupPC;
 			break;
 	}
 	thread->program_counter += 3;
