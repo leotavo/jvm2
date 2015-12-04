@@ -97,6 +97,7 @@ no .class na struct ClassFile.
 typedef	uint8_t		u1;	// 1 byte
 typedef	uint16_t	u2;	// 2 bytes
 typedef	uint32_t	u4;	// 4 bytes
+typedef	uint64_t	u8;	// 4 bytes
 
 extern	char	*	exceptions[] ;
 
@@ -105,35 +106,35 @@ extern	char	*	exceptions[] ;
 // estrutura de dados ClassFile
 typedef struct ClassFile{
 	u4		magic;			// assinatura do arquivo .class = 0xCAFEBABE
-	
+
 	u2		minor_version;		// (m)
 	u2		major_version;		// (M)	indicam a versão do arquivo no formato M.m
-	
+
 	u2		constant_pool_count;	// número de entradas da tabela constant_pool + 1
 	cp_info*	constant_pool;		/* tabela de estruturas representando strings, nomes de classes,
 						 interfaces, nomes de campos, etc. */
-						 
+
 	u2		access_flags;		/* máscara de bits que especifica permissões de acesso
 						e propriedades da classe ou interface */
-						
+
 	u2		this_class;		/* aponta para uma estrutura CONSTANT_Class_info.
 						representa a classe ou interface definida pelo classfile */
-						
+
 	u2		super_class;		/* aponta para uma estrutura CONSTANT_Class_info.
 						representa a superclasse direta (classe mãe) */
-						
+
 	u2		interfaces_count;	// número de entradas no array 'interfaces'
 	u2*		interfaces;		/* cada entrada desse array é um índice da constant_pool do tipo CONSTANT_Class_info,
 						representa uma interface que é uma superinterface direta desta classe ou interface */
-	
+
 	u2		fields_count;		// número de entradas no array 'fields'
 	field_info *	fields;			/* cada entrada desse array é uma estrutura 'field_info'
 						variaveis de classe ou de instâncias declaradas nesta classe ou interface*/
-	
+
 	u2		methods_count;		// número de entradas no array 	'methods'
 	method_info*	methods;		/* cada entrada desse array é uma estrutura 'method_info', contendo
 						a descrição completa de um método da classe ou interface*/
-						
+
 	u2		attributes_count;	// número de entradas no array 'attributes'
 	attribute_info*	attributes;		// cada entrada desse array é uma estrutura 'attribute_info'
 }ClassFile;

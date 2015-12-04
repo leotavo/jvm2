@@ -621,6 +621,7 @@ void	Tastore(METHOD_DATA * method, THREAD * thread, JVM * jvm){
     OPERAND	* operand = (OPERAND *) malloc(sizeof(OPERAND));
     u2 index;
     u4 value;
+    u8 long_double;
     void *reference;
     u4 low, high;
     switch(*thread->program_counter)
@@ -641,6 +642,7 @@ void	Tastore(METHOD_DATA * method, THREAD * thread, JVM * jvm){
             reference = (void *)(thread->jvm_stack)->operand_stack->value;
             (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
 
+            // store value
             if(*thread->program_counter == iastore || *thread->program_counter == fastore || *thread->program_counter == aastore){
                 ((u4*)reference)[index] = value;
             }else if(*thread->program_counter == bastore){
@@ -667,8 +669,12 @@ void	Tastore(METHOD_DATA * method, THREAD * thread, JVM * jvm){
             reference = (void *)(thread->jvm_stack)->operand_stack->value;
             (thread->jvm_stack)->operand_stack = (thread->jvm_stack)->operand_stack->prox;
 
-            ((u4*)reference)[index] = high;
-            ((u4*)reference)[index + 1] = low;
+            long_double = high;
+            long_double <<= 32;
+            long_double += low;
+
+            // store value
+            ((u8*)reference)[index] = long_double;
 
             thread->program_counter++;
 
