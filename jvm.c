@@ -61,7 +61,7 @@ https://docs.oracle.com/javase/specs/jvms/se6/html/Concepts.doc.html#19042
 		puts("ERROR: method 'main' not find.");
 		exit(EXIT_FAILURE);
 	}
-	executeMethod("main", main_class_data, jvm, main_thread, main_class_data);
+	executeMethod("main", main_class_data, jvm, main_thread, NULL, (u2) num_args, (u4 *) args);
 	
 	classUnloading(main_class_data, jvm);
 	jvmExit(jvm);
@@ -404,8 +404,7 @@ Executing the class's class initialization method, if it has one
 			classInitialization(cd_super, jvm, thread);
 /*		}*/
 	}
-/*	executeMethod("<init>", cd, jvm, thread, cd);*/
-	executeMethod("<clinit>", cd, jvm, thread, cd);	
+	executeMethod("<clinit>", cd, jvm, thread, NULL, 0, NULL);	
 }// fim da função classInitialization
 
 /*==========================================*/
@@ -441,12 +440,12 @@ attribute_info	* getCodeAttribute(METHOD_DATA * method, CLASS_DATA * cd){
 
 /*==========================================*/
 // função execute
-void	executeMethod(char * method_name, CLASS_DATA * cd, JVM * jvm, THREAD * thread, void * this){
+void	executeMethod(char * method_name, CLASS_DATA * cd, JVM * jvm, THREAD * thread, void * this, u2 nargs, u4 * args){
 	
 	METHOD_DATA	* method = getMethod(method_name, cd);
 	if(method){
 		if(method->modifiers & ACC_ABSTRACT){
-			puts("ERROR: executing abstract method.");
+			puts("ERROR: IllegalAccessError");
 			exit(EXIT_FAILURE);
 		}
 		attribute_info	* code_attr = getCodeAttribute(method, cd);
@@ -454,7 +453,24 @@ void	executeMethod(char * method_name, CLASS_DATA * cd, JVM * jvm, THREAD * thre
 			// CRIA NOVO FRAME PRO MÉTODO
 			FRAME	* frame = (FRAME *) malloc(sizeof(FRAME));
 			frame->local_variables = (u4 *) malloc(method->locals_size * sizeof(u4));
-			frame->local_variables[0] = (u4) this;
+			
+			u2	index = 0;
+			if(!(method->modifiers & ACC_STATIC)){
+				frame->local_variables[0] = (u4) this;
+				index = 1;
+			}
+			if((index + nargs) > method->locals_size){
+				puts("LocalsOutofBoundsError");
+				exit(EXIT_FAILURE);
+			}
+			for(u2 pos_arg = 0; pos_arg < nargs; pos_arg++, index++){
+				frame->local_variables[index] = args[pos_arg];
+			}
+			
+			if(nargs){
+				free(args);
+			}
+			
 			frame->operand_stack = NULL;
 			frame->current_constant_pool = cd->runtime_constant_pool;
 			frame->return_value = NULL;
