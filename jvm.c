@@ -61,7 +61,7 @@ https://docs.oracle.com/javase/specs/jvms/se6/html/Concepts.doc.html#19042
 		puts("ERROR: method 'main' not find.");
 		exit(EXIT_FAILURE);
 	}
-	executeMethod("main", main_class_data, jvm, main_thread, NULL, (u2) num_args, (u4 *) args);
+	executeMethod("main", "([Ljava/lang/String;)V", main_class_data, jvm, main_thread, NULL, (u2) num_args, (u4 *) args);
 	
 	classUnloading(main_class_data, jvm);
 	jvmExit(jvm);
@@ -279,6 +279,9 @@ Preparation: allocating memory for class variables and initializing the memory t
 					var->prox = cd->class_variables;
 					cd->class_variables = var;
 				}
+				else{
+					free(var);
+				}
 /*			}*/
 /*			else{*/
 /*/*				puts("DEBUG:\tINSTANCE_VARIABLE");*/
@@ -361,10 +364,10 @@ VARIABLE	* getClassVariable(cp_info * cp_field_name, CLASS_DATA * field_class){
 		FIELD_DATA	* fr = cv->field_reference;
 		
 		char	*string1 = cp_field_name->u.Utf8.bytes;
-		string1[cp_field_name->u.Utf8.length];
+		string1[cp_field_name->u.Utf8.length] = '\0';
 		
 		char	*string2 = ((cv->field_reference)->field_name)->u.Utf8.bytes;
-		string2[((cv->field_reference)->field_name)->u.Utf8.length];
+		string2[((cv->field_reference)->field_name)->u.Utf8.length] = '\0';
 		if(!strcmp(string1, string2)){
 			return	cv;
 		}
@@ -404,18 +407,23 @@ Executing the class's class initialization method, if it has one
 			classInitialization(cd_super, jvm, thread);
 /*		}*/
 	}
-	executeMethod("<clinit>", cd, jvm, thread, NULL, 0, NULL);	
+	executeMethod("<clinit>", "()V", cd, jvm, thread, NULL, 0, NULL);	
 }// fim da função classInitialization
 
 /*==========================================*/
 // função getMethod
-METHOD_DATA	* getMethod(char * method_name, CLASS_DATA * cd){
-	char *	name;
+METHOD_DATA	* getMethod(char * method_name, char * method_descriptor, CLASS_DATA * cd){
+	char	* name;
+	char	* descriptor;
 
 	for(u2	i = 0; i < (cd->classfile)->methods_count; i++){
 		name = ((cd->method_data + i)->method_name)->u.Utf8.bytes;
 		name[((cd->method_data + i)->method_name)->u.Utf8.length] = '\0';
-		if(!strcmp(method_name, name)){
+		
+		descriptor = ((cd->method_data + i)->method_descriptor)->u.Utf8.bytes;
+		descriptor[((cd->method_data + i)->method_descriptor)->u.Utf8.length] = '\0';
+		
+		if(!strcmp(method_name, name) && !strcmp(method_descriptor, descriptor)){
 			return	(cd->method_data + i);
 		}
 	}
@@ -436,13 +444,13 @@ attribute_info	* getCodeAttribute(METHOD_DATA * method, CLASS_DATA * cd){
 		}
 	}
 	return	NULL;
-}// fim da função getMethod
+}// fim da função getCodeAttribute
 
 /*==========================================*/
 // função execute
-void	executeMethod(char * method_name, CLASS_DATA * cd, JVM * jvm, THREAD * thread, void * this, u2 nargs, u4 * args){
+void	executeMethod(char * method_name, char * method_descriptor, CLASS_DATA * cd, JVM * jvm, THREAD * thread, void * this, u2 nargs, u4 * args){
 	
-	METHOD_DATA	* method = getMethod(method_name, cd);
+	METHOD_DATA	* method = getMethod(method_name, method_descriptor, cd);
 	if(method){
 		if(method->modifiers & ACC_ABSTRACT){
 			puts("ERROR: IllegalAccessError");

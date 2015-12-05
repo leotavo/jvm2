@@ -1116,6 +1116,8 @@ void	Tmul(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lmul*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.fmul*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.dmul*/
+
+		thread->program_counter++;
 }
 
 // Tdiv		0x6C a 0x6F
@@ -1263,11 +1265,67 @@ void	Tushr(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lushr*/
 }
 
+
 // Tand		0x7E e 0x7F
 //	Instruções And bit a bit
 void	Tand(METHOD_DATA * method, THREAD * thread, JVM * jvm){
-/*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.iand*/
-/*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.land*/
+		u4 value,aux1,aux2;
+		int32_t first_operand, second_operand, result;
+		int64_t oper1,oper2;
+	   OPERAND	* operand = (OPERAND *) malloc(sizeof(OPERAND));
+switch(*thread->program_counter) {
+	
+		// INSTRUÇÃO IAND
+		case iand:
+			// Desempilha operando
+		popOperand(thread->jvm_stack);
+			first_operand = (int32_t) value;
+			// Desempilha operando
+	    popOperand(thread->jvm_stack);
+			second_operand = (int32_t) value;
+			// Empilha resultado
+		result = first_operand &= second_operand;
+		pushOperand(result, thread->jvm_stack);
+			thread->program_counter++;
+			break;
+		
+		//Intrução LAND
+		case land:
+
+        //Desempilha aux2
+		popOperand(thread->jvm_stack);
+			aux2 = (int32_t) value;
+
+        //Desempilha oper1
+		popOperand(thread->jvm_stack);
+			oper1 = (signed)(int32_t) value;
+
+			oper1 = oper1 << 32;
+			oper1 |= aux1;
+			
+        //Desempilha aux2
+		popOperand(thread->jvm_stack);
+			aux2 = (signed)(int32_t) value;
+			
+        //Desempilha oper2
+		popOperand(thread->jvm_stack);
+			oper2 = (signed)(int32_t) value;
+
+			oper2 = oper2 << 32;
+			oper2 |= aux2;
+			oper1 = oper2 &= oper1;
+			aux1 = oper1 >> 32;
+		
+		//Empilha aux1	
+			pushOperand(aux1, thread->jvm_stack);
+
+			aux1 = oper1 & 0xffffffff;
+
+        //Empilha aux1
+		    pushOperand(aux1, thread->jvm_stack);
+			thread->program_counter++;
+			break;
+}
 }
 
 // Tor		0x80 e 0x81
@@ -1689,7 +1747,14 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		char	* class_name = cp_class_name->u.Utf8.bytes;
 		class_name[cp_class_name->u.Utf8.length] = '\0';
 		puts("");
-		classLoading(strcat(class_name, ".class"), &field_class, method->class_data, jvm);
+		
+		char	* string = malloc((strlen(class_name) + 7) * sizeof(CHAR));
+		strcpy(string, class_name);
+		strcat(string, ".class");
+		
+		
+		classLoading(string, &field_class, method->class_data, jvm);
+		free(string);
 		classLinking(field_class, jvm);
 		classInitialization(field_class, jvm, thread);
 		thread->program_counter = backupPC;
@@ -1873,6 +1938,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		strcat(string, ".class");
 
 		classLoading(string, &method_class, method->class_data, jvm);
+		free(string);
 		classLinking(method_class, jvm);
 		classInitialization(method_class, jvm, thread);
 		thread->program_counter = backupPC;
@@ -1880,7 +1946,19 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	}
 	bool	is_print = false;
 
-	METHOD_DATA	* invoked_method = getMethod(method_name, method_class);
+	METHOD_DATA	* invoked_method = getMethod(method_name, method_descriptor, method_class);
+	
+	if(!invoked_method){
+		puts("AbstractMethodError: método não encontrado");
+		exit(EXIT_FAILURE);
+	}
+	
+	if(invoked_method->modifiers & ACC_ABSTRACT){
+		puts("AbstractMethodError: método abstrato");
+		exit(EXIT_FAILURE);
+	}
+	
+	
 	if(!(invoked_method->modifiers & ACC_PUBLIC)){// SE O MÉTODO NÃO É PUBLICO
 		if(invoked_method->modifiers & ACC_PROTECTED){ // SE O MÉTODO É PROTECTED
 			if(method->class_data != method_class){ // Se a classe do método invokado é diferente da classe método corrente
@@ -1924,13 +2002,156 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 
 		}
 	}
+	
+	// desempilha operandos e coloca no vetor de variaveis locais;
+	u2	nargs = 0;
+	u4	* args = (u4 *) malloc(invoked_method->locals_size * sizeof(u4));
+	u2	i = 1;
+	while(method_descriptor[i] != ')'){
+		switch(method_descriptor[i]){
+			case	REF_INST:
+				while(method_descriptor[i] != ';'){
+					i++;
+				}
+			case	BOOLEAN:
+			case	BYTE:
+			case	CHAR:
+			case	FLOAT:
+			case	INT:
+			case	SHORT:
+				args[nargs] = popOperand(thread->jvm_stack);
+				nargs++;
+				break;
+			case	LONG:
+			case	DOUBLE:
+				args[nargs] = popOperand(thread->jvm_stack);
+				nargs++;
+				args[nargs] = popOperand(thread->jvm_stack);
+				nargs++;
+				break;
+			case	REF_ARRAY:
+				while(method_descriptor[i] == '['){
+					i++;
+				}
+				switch(method_descriptor[i]){
+					case	REF_INST:
+						while(method_descriptor[i] != ';'){
+							i++;
+						}
+					case	BOOLEAN:
+					case	BYTE:
+					case	CHAR:
+					case	FLOAT:
+					case	INT:
+					case	SHORT:
+					case	LONG:
+					case	DOUBLE:
+						args[nargs] = popOperand(thread->jvm_stack);
+						nargs++;
+						break;
+				}
+				break;
+		}
+		i++;
+	}
+
 	switch(* thread->program_counter){// PARA TESTAR O HELLOWORLD
 		case	invokevirtual:
 			if(is_print){
 				break;
 			}
 			break;
-		case	invokespecial:
+		case	invokespecial:;
+			OBJECT	* objectref = (OBJECT *) popOperand(thread->jvm_stack);
+			if(!objectref){
+				puts("NullPointerException");
+				exit(EXIT_FAILURE);
+			}
+			
+			if(invoked_method->modifiers & ACC_STATIC){
+				puts("IncompatibleClassChangeError");
+				exit(EXIT_FAILURE);
+			}
+			
+			if((invoked_method->modifiers & ACC_PROTECTED)){
+				CLASS_DATA	* super_class = getSuperClass((method->class_data)->classfile, jvm);
+				bool	isSuperClass = false;
+				while(super_class && !isSuperClass){
+					if(method_class == super_class){
+						isSuperClass = true;
+					}
+					else{
+						super_class =  getSuperClass(super_class->classfile, jvm);
+					}
+				}				
+				if(isSuperClass && ((invoked_method->class_data)->classloader_reference !=
+							 (method->class_data)->classloader_reference )){
+					CLASS_DATA	* class_objectref = objectref->class_data_reference;
+					if(class_objectref != method->class_data){
+						isSuperClass = false;
+						super_class = getSuperClass(class_objectref->classfile, jvm);						
+						while(super_class && !isSuperClass){
+							if(method->class_data == super_class){
+								isSuperClass = true;
+							}
+							else{
+								super_class = getSuperClass(super_class->classfile, jvm);
+							}
+						}
+						if(!isSuperClass){
+							puts("IllegalAccessError: acesso indevido à método protegido");
+							exit(EXIT_FAILURE);
+						}
+					}
+				}
+			}
+			CLASS_DATA	* super_class = getSuperClass((method->class_data)->classfile, jvm);
+				bool	isSuperClass = false;
+				while(super_class && !isSuperClass){
+					if(method_class == super_class){
+						isSuperClass = true;
+					}
+					else{
+						super_class =  getSuperClass(super_class->classfile, jvm);
+					}
+				}
+			// se a classe corrente é super;
+			// a classe do método invokado é superclasse da classe corrente;
+			// e o metodo nao é <init>
+
+			if(((method->class_data)->modifiers & ACC_SUPER) && (isSuperClass) && strcmp(method_name, "<init>")){
+				bool	findMethod = false;
+				super_class = getSuperClass((method->class_data)->classfile, jvm);
+				while(super_class && !findMethod){
+					if(invoked_method = getMethod(method_name, method_descriptor, super_class)){
+						if(!(invoked_method->modifiers & ACC_STATIC)){
+							backupPC = thread->program_counter;
+							executeMethod(method_name, method_descriptor, super_class, 
+									jvm, thread, NULL, nargs, args);
+							thread->program_counter = backupPC;
+							findMethod = true;
+						}
+						else{
+							super_class = getSuperClass(super_class->classfile, jvm);
+						}
+					}
+					else{
+						super_class = getSuperClass(super_class->classfile, jvm);
+					}
+				}
+				if(!findMethod){
+					puts("AbstractMethodError:");
+					exit(EXIT_FAILURE);
+				}
+				
+			}
+			else{
+				backupPC = thread->program_counter;
+				executeMethod(method_name, method_descriptor, method_class, jvm, thread, objectref, nargs, args);
+				thread->program_counter = backupPC;
+			}
+			
+			
 			break;
 		case	invokestatic:
 			if((!strcmp(method_name, "<init>")) || (!strcmp(method_name, "<clinit>"))){
@@ -1992,7 +2213,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				i++;
 			}
 			backupPC = thread->program_counter;
-			executeMethod(method_name, method_class, jvm, thread, NULL, nargs, args);
+			executeMethod(method_name, method_descriptor, method_class, jvm, thread, NULL, nargs, args);
 			thread->program_counter = backupPC;
 			break;
 	}
@@ -2008,7 +2229,129 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.arraylength*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.multianewarray*/
 	switch(* thread->program_counter){// PARA TESTAR O HELLOWORLD
-		case	new:
+		case	new:;
+			u1	indexbyte1 = * (thread->program_counter + 1);
+			u1	indexbyte2 = * (thread->program_counter + 2);
+			u2	index = (indexbyte1 << 8) | indexbyte2;
+			
+			cp_info	* cp =(thread->jvm_stack)->current_constant_pool;
+			cp_info	* cp_class = cp + index - 1;
+			
+			if(cp_class->tag != CONSTANT_Class){
+				puts("InstantiationError: Referência inválida para classe do objeto");
+				exit(EXIT_FAILURE);
+			}
+			
+			cp_info	* cp_class_name = cp + cp_class->u.Class.name_index - 1;
+			
+			// CONTROLE DE ACESSO
+			u1	* backupPC = thread->program_counter;
+			CLASS_DATA	* object_class = getClass(cp_class_name, jvm);
+			if(!object_class){// se a classe do objeto não foi carregada
+				char	* class_name = cp_class_name->u.Utf8.bytes;
+				class_name[cp_class_name->u.Utf8.length] = '\0';
+				puts("");
+		
+				char	* string = malloc((strlen(class_name) + 7) * sizeof(CHAR));
+				strcpy(string, class_name);
+				strcat(string, ".class");
+		
+				classLoading(string, &object_class, method->class_data, jvm);
+				free(string);
+				classLinking(object_class, jvm);
+				classInitialization(object_class, jvm, thread);
+				
+				thread->program_counter = backupPC;
+				printf("\nResume %s\n", opcodes[*thread->program_counter]);
+			}
+			else{
+				if(object_class != method->class_data){// Se o objeto não for da mesma classe do método
+					// verifica se a classe do objeto é acessível pelo método corrente
+					if(!(object_class->modifiers & ACC_PUBLIC) & // se a classe não é public e não é do mesmo package
+					(object_class->classloader_reference != (method->class_data)->classloader_reference)){
+						puts("IllegalAccessError: acesso indevido à classe ou interface.");
+						exit(EXIT_FAILURE);
+					}
+				}
+			}
+			if((object_class->modifiers == ACC_INTERFACE) || (object_class->modifiers == ACC_ABSTRACT)){
+				puts("InstantiationError: Criação de objeto de interface ou class abstrata");
+			}
+			
+			OBJECT	*	newObject = (OBJECT *) malloc(sizeof(OBJECT));
+			newObject->class_data_reference = object_class;
+			newObject->prox = (jvm->heap)->objects;
+			(jvm->heap)->objects = newObject;
+			
+			// CRIA INSTANCE_VARIABLES
+			if(!(object_class->classfile)->fields_count){
+				newObject->instance_variables = NULL;
+			}
+			else{
+				for(u2 i = 0; i < (object_class->classfile)->fields_count; i++){
+					VARIABLE	* var = (VARIABLE *) malloc(sizeof(VARIABLE));
+					var->field_reference = object_class->field_data + i;
+					(object_class->field_data + i)->var = var;
+			
+					u2	descriptor_index = ((object_class->field_data + i)->info)->descriptor_index;
+					(var->value).type = (object_class->runtime_constant_pool + descriptor_index - 1)->u.Utf8.bytes[0];
+					switch((var->value).type){
+						case	BOOLEAN:
+							(var->value).u.Boolean.boolean = 0;
+							break;
+						case	BYTE:
+							(var->value).u.Byte.byte = 0;
+							break;
+						case	CHAR:
+							(var->value).u.Char.char_ = 0;
+							break;
+						case	DOUBLE:
+							(var->value).u.Double.high_bytes = 0;
+							(var->value).u.Double.low_bytes = 0;
+							break;
+						case	FLOAT:
+							(var->value).u.Float.float_ = 0;
+							break;
+						case	INT:
+							(var->value).u.Integer.integer = 0;
+							break;
+						case	LONG:
+							(var->value).u.Long.high_bytes = 0;
+							(var->value).u.Long.low_bytes = 0;
+							break;
+						case	REF_INST:
+							(var->value).u.InstanceReference.reference = NULL;
+							break;
+						case	SHORT:
+							(var->value).u.Short.short_ = 0;
+							break;
+						case	REF_ARRAY:
+							(var->value).u.ArrayReference.reference = NULL;
+							break;
+						default:
+							puts("VerifyError: Unknown type");
+							exit(EXIT_FAILURE);
+					}
+					u2	access_flags = (object_class->field_data + i)->modifiers;
+/*			if(!(access_flags & ACC_FINAL)){*/
+					if(!(access_flags & ACC_STATIC)){		
+						var->prox = newObject->instance_variables;
+							newObject->instance_variables = var;
+					}
+					else{
+						free(var);
+					}
+/*			}*/
+				}
+			}
+			// coloca novo objeto no heap
+			newObject->prox = (jvm->heap)->objects;
+			(jvm->heap)->objects = newObject;
+			
+			// coloca referencia do objeto na pilha
+			pushOperand((u4) newObject, thread->jvm_stack);
+			thread->program_counter += 3;
+			break;
 		case	anewarray:
 			thread->program_counter += 3;
 			break;
