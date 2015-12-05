@@ -35,9 +35,29 @@ int	isWide = 0;
 //	INTERPRETADOR
 void	interpreter(METHOD_DATA	* method, THREAD * thread, JVM * jvm){
 	thread->program_counter = method->bytecodes;
-	printf("PC\tOPCODE");
+/*	printf("PC\tOPCODE");*/
+	OPERAND		* operand = (thread->jvm_stack)->operand_stack;
+
 	while(thread->program_counter < (method->bytecodes + method->code_length)){	// enquanto houver instruções
-		printf("\n%" PRIu8 "\t%s", thread->program_counter - method->bytecodes, opcodes[* thread->program_counter]);
+/*		// imprime a pilha de operandos*/
+/*		printf("\nOPERAND_STACK\t->");*/
+/*		if(!operand){*/
+/*			printf("\tNULL");*/
+/*		}*/
+/*		while(operand){*/
+/*			printf("\t%" PRIx32, operand->value);*/
+/*			operand = operand->prox;*/
+/*		}*/
+/*		*/
+/*		// imprime o vetor de variaveis locais*/
+/*		printf("\nLOCAL VARIABLES\t->");*/
+/*		printf("\t%p", (OBJECT *) (thread->jvm_stack)->local_variables);*/
+/*		for(u2 i = 1; i < method->locals_size; i++){*/
+/*			printf("\t%" PRIx32, * ((thread->jvm_stack)->local_variables + i));*/
+/*		}*/
+/*		puts("");*/
+/*			*/
+/*		printf("\n%" PRIu8 "\t%s", thread->program_counter - method->bytecodes, opcodes[* thread->program_counter]);*/
 		func[* thread->program_counter](method, thread, jvm);
 		// OBS: PROGRAM_COUNTER DEVE SER MODIFICADO AO EXECUTAR CADA INSTRUÇÃO, DE ACORDO COM A QUANTIDADE DE OPERANDOS.
 	}
@@ -184,7 +204,7 @@ void	Tipush(METHOD_DATA * method, THREAD * thread, JVM * jvm){ // TESTAR NEGATIV
 		case bipush:
 			thread->program_counter++;
 			aux1 = (s1) *(thread->program_counter);
-			printf("\t%" PRId8, aux1);
+/*			printf("\t%" PRId8, aux1);*/
 			pushOperand((u4) aux1, thread->jvm_stack);
 /*			printf("\n%" PRId32 "\n", ((thread->jvm_stack)->operand_stack)->value);*/
 /*			*value = (u4) aux1;*/
@@ -278,8 +298,8 @@ void	ldc_(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 
 				break;
 			default:
-				printf("Indice invalido.\n");
-				exit(1);
+				printf("VerifyErro: invalid index constant pool.\n");
+				exit(EXIT_FAILURE);
 				break;
 		}
 		thread->program_counter++;
@@ -1689,7 +1709,7 @@ void	if_icmOP(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u1	branchbyte2 = * (thread->program_counter + 2);
 	s2	branch = (branchbyte1 << 8) | branchbyte2;
 
-	printf("\t(%+" PRId16 ")", branch);
+/*	printf("\t(%+" PRId16 ")", branch);*/
 	u4	value2	= popOperand(thread->jvm_stack);
 	u4	value1	= popOperand(thread->jvm_stack);
 
@@ -1767,15 +1787,16 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u1	indexbyte1 = *(thread->program_counter + 1);
 	u1	indexbyte2 = *(thread->program_counter + 2);
 	u2	index = (indexbyte1 << 8) | indexbyte2;
-	printf("\t%" PRIu16, index);
+/*	printf("\t%" PRIu16, index);*/
 	// RESOLUÇÃO DO FIELD
 		// Nome da classe do field
 	cp_info	* cp_aux = (thread->jvm_stack)->current_constant_pool;
 	cp_aux = cp_aux + index - 1; // falta verificar se o indice está nos limites da constant pool
 	cp_aux = (thread->jvm_stack)->current_constant_pool + cp_aux->u.Ref.class_index - 1;
 	cp_info	* cp_class_name = (thread->jvm_stack)->current_constant_pool + cp_aux->u.Class.name_index - 1;
-/*	printf("field_class_name: ");*/
-/*	PrintConstantUtf8(cp_class_name, stdout);*/
+	char	* class_name = cp_class_name->u.Utf8.bytes;
+	class_name[cp_class_name->u.Utf8.length] = '\0';
+
 
 
 		// nome do field
@@ -1783,24 +1804,19 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	cp_aux = cp_aux + index - 1;
 	cp_aux = (thread->jvm_stack)->current_constant_pool + cp_aux->u.Ref.name_and_type_index - 1;
 	cp_info	* cp_field_name = (thread->jvm_stack)->current_constant_pool + cp_aux->u.NameAndType.name_index - 1;
-/*	printf("\nfield_name: ");*/
-/*	PrintConstantUtf8(cp_field_name, stdout);*/
-
+	char	* field_name = cp_field_name->u.Utf8.bytes;
+	field_name[cp_field_name->u.Utf8.length] = '\0';
 
 		// descritor do field
 	cp_info * cp_field_descriptor = (thread->jvm_stack)->current_constant_pool + cp_aux->u.NameAndType.descriptor_index - 1;
-/*	printf("\nfield_descriptor: ");*/
-/*	PrintConstantUtf8(cp_field_descriptor, stdout);*/
-/*	puts("");*/
+	char	* field_descriptor = cp_field_descriptor->u.Utf8.bytes;
+	field_descriptor[cp_field_descriptor->u.Utf8.length] = '\0';
 
 	// CONTROLE DE ACESSO
 	u1	* backupPC = thread->program_counter;
 	CLASS_DATA	* field_class = getClass(cp_class_name, jvm);
 	if(!field_class){// se a classe do field não foi carregada
-		char	* class_name = cp_class_name->u.Utf8.bytes;
-		class_name[cp_class_name->u.Utf8.length] = '\0';
-		puts("");
-
+/*		puts("");*/
 		char	* string = malloc((strlen(class_name) + 7) * sizeof(CHAR));
 		strcpy(string, class_name);
 		strcat(string, ".class");
@@ -1811,7 +1827,7 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		classLinking(field_class, jvm);
 		classInitialization(field_class, jvm, thread);
 		thread->program_counter = backupPC;
-		printf("\nResume %s\n", opcodes[*thread->program_counter]);
+/*		printf("\nResume %s\n", opcodes[*thread->program_counter]);*/
 	}
 	else{
 		if(field_class != method->class_data){// Se o Field não for da mesma classe
@@ -1824,15 +1840,14 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		}
 	}
 
-	VARIABLE	* var = getClassVariable(cp_field_name, field_class);
-
-	if(!var){
-		puts("NoSuchFieldError");
-		exit(EXIT_FAILURE);
-	}
-
+	VARIABLE	* var;
 	switch(* thread->program_counter){
 		case	getstatic:;
+			var = getClassVariable(cp_field_name, field_class);
+			if(!var){
+				puts("NoSuchFieldError");
+				exit(EXIT_FAILURE);
+			}
 			OPERAND	* operand = (OPERAND *) malloc(sizeof(OPERAND));
 			switch((var->value).type){
 				case	BYTE:
@@ -1872,7 +1887,7 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					}
 					operand2->prox = (thread->jvm_stack)->operand_stack;
 					(thread->jvm_stack)->operand_stack = operand;
-					printf("value = %" PRIu32 "\n", ((thread->jvm_stack)->operand_stack)->value);
+/*					printf("value = %" PRIu32 "\n", ((thread->jvm_stack)->operand_stack)->value);*/
 					break;
 				default:
 					puts("VerifyError: descritor de field inválido");
@@ -1884,6 +1899,11 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*			printf("value = %" PRIu32 "\n", ((thread->jvm_stack)->operand_stack)->value);*/
 			break;
 		case	putstatic:
+			var = getClassVariable(cp_field_name, field_class);
+			if(!var){
+				puts("NoSuchFieldError");
+				exit(EXIT_FAILURE);
+			}
 			switch((var->value).type){
 				case	BYTE:
 					(var->value).u.Byte.byte = (s1) popOperand(thread->jvm_stack);
@@ -1926,7 +1946,58 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			break;
 		case	getfield:
 			break;
-		case	putfield:
+		case	putfield:;
+			VALUE	value;
+			switch(* field_descriptor){
+				case	BYTE:
+					value.u.Byte.byte = (s1) popOperand(thread->jvm_stack);
+					break;
+				case	CHAR:
+					value.u.Char.char_ = (u1) popOperand(thread->jvm_stack);
+					break;
+				case	FLOAT:
+					value.u.Float.float_ = popOperand(thread->jvm_stack);
+					break;
+				case	INT:
+					value.u.Integer.integer = (s4) popOperand(thread->jvm_stack);
+					break;
+				case	REF_INST:
+					value.u.InstanceReference.reference = (OBJECT *) popOperand(thread->jvm_stack);
+/*					printf("%p\n" , value.u.ArrayReference.reference);	*/
+					break;
+				case	SHORT:
+					value.u.Short.short_ = (s2) popOperand(thread->jvm_stack);
+					break;
+				case	BOOLEAN:
+					value.u.Boolean.boolean = (u1) popOperand(thread->jvm_stack);
+					break;
+				case	REF_ARRAY:
+					value.u.ArrayReference.reference = (ARRAY *) popOperand(thread->jvm_stack);
+
+					break;
+				case	DOUBLE:
+					value.u.Double.high_bytes = popOperand(thread->jvm_stack);
+					value.u.Double.low_bytes = popOperand(thread->jvm_stack);
+					break;
+				case	LONG:
+					value.u.Long.high_bytes = popOperand(thread->jvm_stack);
+					value.u.Long.low_bytes = popOperand(thread->jvm_stack);
+					break;
+				default:
+					puts("VerifyError: descritor de field inválido");
+					exit(EXIT_FAILURE);
+			}
+			OBJECT	* objectref = (OBJECT *) popOperand(thread->jvm_stack);
+			if(!objectref){
+				puts("NullPointerException");
+				exit(EXIT_FAILURE);
+			}
+			var = getInstanceVariable(cp_field_name, objectref);
+			if(!var){
+				puts("NoSuchFieldError");
+				exit(EXIT_FAILURE);
+			}
+			var->value = value;
 			break;
 	}
 
@@ -1945,7 +2016,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u1	indexbyte1 = *(thread->program_counter + 1);
 	u1	indexbyte2 = *(thread->program_counter + 2);
 	u2	index = (indexbyte1 << 8) | indexbyte2;
-	printf("\t%" PRIu16, index);
+/*	printf("\t%" PRIu16, index);*/
 /*	https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-5.html#jvms-5.4.3.3*/
 	// RESOLUÇÃO DO MÈTODO
 
@@ -1984,7 +2055,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	CLASS_DATA	* method_class = getClass(cp_class_name, jvm);
 	if(!method_class){// se a classe do método não foi carregada, mesmo package
 
-		puts("");
+/*		puts("");*/
 
 		char	* string = malloc((strlen(class_name) + 7) * sizeof(CHAR));
 		strcpy(string, class_name);
@@ -1995,7 +2066,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		classLinking(method_class, jvm);
 		classInitialization(method_class, jvm, thread);
 		thread->program_counter = backupPC;
-		printf("\nResume %s\n", opcodes[*thread->program_counter]);
+/*		printf("\nResume %s\n", opcodes[*thread->program_counter]);*/
 	}
 	bool	is_print = false;
 
@@ -2044,18 +2115,124 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	}
 	else{
 		if(!strcmp(class_name, "java/io/PrintStream")){
-			if(!strcmp(method_name, "print")){
-				print((char *)popOperand(thread->jvm_stack));
+			bool	ln = false;
+			if(!strcmp(method_name, "println")){
+				is_print = true;
+				ln = true;
+			}
+			else if(!strcmp(method_name, "print")){
 				is_print = true;
 			}
-			else if(!strcmp(method_name, "println")){
-				println((char *)popOperand(thread->jvm_stack));
-				is_print = true;
-			}
+			if(is_print){
+				switch(method_descriptor[1]){
+					case	BOOLEAN:;
+						u1	boolean_ = (u1) popOperand(thread->jvm_stack);
+						if(boolean_){
+							printf("true");
+						}
+						else{
+							printf("false");
+						}
+						break;
+					case	BYTE:
+						printf("%" PRId8, (s1) popOperand(thread->jvm_stack));
+						break;
+					case	CHAR:; // BUG PARA UNICODE CHAR
+						u2	char_ = popOperand(thread->jvm_stack);
+						printf("char_ = %" PRIu16 "\t", char_);
+						char	* utf8_char = malloc(3*sizeof(CHAR));
+						utf8_char = (char *) &char_;
+						utf8_char[2] = '\0';
+						u1	aux = utf8_char[1];
+						if(aux){
+							utf8_char[1] = utf8_char[0];
+							utf8_char[0] = aux;
+						}
 
+/*						printf("%" PRIu16 " - %d - %d\n", char_, utf8_char[0], utf8_char[1]);*/
+						printf("%s", utf8_char);
+						break;
+					case	SHORT:
+/*						printf("topo = %" PRId16 "\n", (s2) ((thread->jvm_stack)->operand_stack)->value);*/
+						printf("%" PRId16, (s2) popOperand(thread->jvm_stack));
+						break;
+					case	INT:
+						printf("%" PRId32, (s4) popOperand(thread->jvm_stack));
+						break;
+					case	FLOAT:;
+						u4 float_bits = popOperand(thread->jvm_stack);
+						bool	isValidFloat = true;
+						switch(float_bits){
+							case	0x7f800000:
+								printf("+∞");
+								isValidFloat = false;
+								break;
+							case	0xff800000:
+								printf("-∞");
+								isValidFloat = false;
+								break;
+							default:
+								if((float_bits >= 0x7f800001 || float_bits <= 0x7fffffff) ||
+									(float_bits >= 0xff800001 || float_bits <= 0xffffffff)){
+									printf("NaN");
+								}
+								isValidFloat = false;
+						}
+						if(isValidFloat){
+							s4 s = ((float_bits >> 31) == 0) ? 1 : -1;
+							s4 e = ((float_bits >> 23) & 0xff);
+							s4 m = (e == 0) ?
+								(float_bits & 0x7fffff) << 1 :
+								(float_bits & 0x7fffff) | 0x800000;
+							printf("%f", (float) s * m * pow(2,e - 150));
+						}
+						break;
+					case	LONG:;
+						u4	long_low_bytes = popOperand(thread->jvm_stack);
+						u4	long_high_bytes = popOperand(thread->jvm_stack);
+						s8	long_ = ((u8) long_high_bytes << 32) | long_low_bytes;
+						printf("%" PRId64, long_);
+						break;
+					case	DOUBLE:;
+						u4	double_low_bytes = popOperand(thread->jvm_stack);
+						u4	double_high_bytes = popOperand(thread->jvm_stack);
+						u8	double_bits = ((u8) double_high_bytes << 32) | double_low_bytes;
+
+						bool	isValidDouble = true;
+						switch(double_bits){
+							case	0x7ff0000000000000L:
+								printf("+∞");
+								isValidDouble = false;
+								break;
+							case	0xfff0000000000000L:
+								printf("-∞");
+								isValidDouble = false;
+								break;
+							default:
+								if((double_bits >= 0x7ff0000000000001L || double_bits <= 0x7ffffffffffffL) ||
+									(double_bits >= 0xfff0000000000001L || double_bits <= 0x7ffffffffffffL)){
+									printf("NaN");
+								}
+								isValidDouble = false;
+						}
+						if(isValidDouble){
+							s4 s = ((double_bits >> 63) == 0) ? 1 : -1;
+							s4 e = ((double_bits >> 52) & 0x7ffL);
+							s8 m = (e == 0) ?
+								(double_bits & 0xfffffffffffffL) << 1 :
+								(double_bits & 0xfffffffffffffL) | 0x10000000000000L;
+							printf("%lf", (double) s * m * pow(2,e - 1075));
+						}
+						break;
+					case	REF_INST: // STRING
+						printf("%s", (char *) popOperand(thread->jvm_stack));
+				}
+				if(ln){
+					puts("");
+				}
+			}
 		}
 	}
-
 	// desempilha operandos e coloca no vetor de variaveis locais;
 	u2	nargs = 0;
 	u4	* args = (u4 *) malloc(invoked_method->locals_size * sizeof(u4));
@@ -2303,8 +2480,7 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			if(!object_class){// se a classe do objeto não foi carregada
 				char	* class_name = cp_class_name->u.Utf8.bytes;
 				class_name[cp_class_name->u.Utf8.length] = '\0';
-				puts("");
-
+/*				puts("");*/
 				char	* string = malloc((strlen(class_name) + 7) * sizeof(CHAR));
 				strcpy(string, class_name);
 				strcat(string, ".class");
@@ -2315,7 +2491,7 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				classInitialization(object_class, jvm, thread);
 
 				thread->program_counter = backupPC;
-				printf("\nResume %s\n", opcodes[*thread->program_counter]);
+/*				printf("\nResume %s\n", opcodes[*thread->program_counter]);*/
 			}
 			else{
 				if(object_class != method->class_data){// Se o objeto não for da mesma classe do método

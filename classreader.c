@@ -215,6 +215,7 @@ void		setVersion(ClassFile * cf, FILE * fi){
 // le e armazena o pool de constantes do ClassFile
 void		setConstantPool(ClassFile * cf, FILE * fi){
 	cf->constant_pool_count = u2Read(fi);
+/*	printf("constant_pool_count = %" PRIu16, cf->constant_pool_count);*/
 	if(cf->constant_pool_count == 0){
 		puts("VerifyError");
 		exit(EXIT_FAILURE);
@@ -224,7 +225,7 @@ void		setConstantPool(ClassFile * cf, FILE * fi){
 	cp_info * cp;
 	for(cp = cf->constant_pool; cp < (cf->constant_pool + cf->constant_pool_count - 1); cp++){
 		cp->tag = u1Read(fi);
-		
+/*		printf("\ncp_tag = %" PRIu8, cp->tag);*/
 		switch(cp->tag){			
 			case	CONSTANT_Class:
 				cp->u.Class.name_index = u2Read(fi);
