@@ -86,7 +86,7 @@ The loading process consists of three basic activities. To load a type, the Java
 /*		class_binary_file = fopen(strcat(class_filename, class), "r");	*/
 /*	}*/
 /*	else{*/
-		class_binary_file = fopen(class_filename, "r");
+		class_binary_file = fopen(class_filename, "rb");
 /*	}*/
 
 	if(!class_binary_file){
@@ -94,7 +94,7 @@ The loading process consists of three basic activities. To load a type, the Java
 		exit(EXIT_FAILURE);
 	}
 	else{
-		printf("Carregando %s\n", class_filename);
+/*		printf("Carregando %s\n", class_filename);*/
 		cf = loadClassFile(class_binary_file);
 	}
 /*	puts("DEBUG:\tCRIANDO CLASS_DATA");*/
@@ -380,6 +380,29 @@ VARIABLE	* getClassVariable(cp_info * cp_field_name, CLASS_DATA * field_class){
 }
 
 /*==========================================*/
+// funcao getInstanceVariable
+VARIABLE	* getInstanceVariable(cp_info * cp_field_name, OBJECT * objectref){
+	VARIABLE	* iv = objectref->instance_variables;
+	
+	while(iv){
+		FIELD_DATA	* fr = iv->field_reference;
+		
+		char	*string1 = cp_field_name->u.Utf8.bytes;
+		string1[cp_field_name->u.Utf8.length] = '\0';
+		
+		char	*string2 = ((iv->field_reference)->field_name)->u.Utf8.bytes;
+		string2[((iv->field_reference)->field_name)->u.Utf8.length] = '\0';
+		if(!strcmp(string1, string2)){
+			return	iv;
+		}
+		else{
+			iv = iv->prox;
+		}
+	}
+	return	NULL;
+}
+
+/*==========================================*/
 // função classInitialization
 void	classInitialization(CLASS_DATA * cd, JVM * jvm, THREAD * thread){
 /*	A IMPLEMENTAR
@@ -485,14 +508,14 @@ void	executeMethod(char * method_name, char * method_descriptor, CLASS_DATA * cd
 			frame->prox = thread->jvm_stack;
 			thread->jvm_stack = frame;
 			
-			printf("\nmétodo: ");
-			PrintConstantUtf8(cd->class_name, stdout);
-			printf(".%s\n", method_name);
+/*			printf("\nmétodo: ");*/
+/*			PrintConstantUtf8(cd->class_name, stdout);*/
+/*			printf(".%s\n", method_name);*/
 			// CHAMA O INTERPRETADOR
 			interpreter(method, thread, jvm);
-			printf("\nEnd\t");
-			PrintConstantUtf8(cd->class_name, stdout);
-			printf(".%s\n", method_name);
+/*			printf("\nEnd\t");*/
+/*			PrintConstantUtf8(cd->class_name, stdout);*/
+/*			printf(".%s\n", method_name);*/
 			
 		}
 		else{
