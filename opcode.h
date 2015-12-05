@@ -306,7 +306,7 @@
 // Array contendo strings com os mnemônicos da JVM, para utilização no Exibidor.
 char	*	opcodes[] = {
 		// 0 a 9
-		"nop", "aconst_null", "iconst_m1", "iconst_0", "iconst_1", "iconst2", "iconst_3", "iconst_4", "iconst_5", "lconst_0",
+		"nop", "aconst_null", "iconst_m1", "iconst_0", "iconst_1", "iconst_2", "iconst_3", "iconst_4", "iconst_5", "lconst_0",
 		// 10 a 19
 		"lconst_1", "fconst_0", "fconst_1", "fconst_2", "dconst_0", "dconst_1", "bipush", "sipush", "ldc", "ldc_w",
 		// 20 a 29

@@ -205,7 +205,7 @@ void	classLinkingVerification(CLASS_DATA *, JVM *);
 void	classLinkingPreparation(CLASS_DATA *, JVM *);
 void	classLinkingResolution(ClassFile *, JVM *);
 void	classInitialization(CLASS_DATA *, JVM *, THREAD *);
-void	executeMethod(char *, CLASS_DATA *, JVM *, THREAD *, void *, u2, u4 *);
+void	executeMethod(char *, char *, CLASS_DATA *, JVM *, THREAD *, void *, u2, u4 *);
 void	classUnloading(CLASS_DATA *, JVM *);
 attribute_info	* getCodeAttribute(METHOD_DATA *, CLASS_DATA *);
 char	*	getClassName(CLASS_DATA *);
@@ -214,7 +214,7 @@ CLASS_DATA	* getClass(cp_info *, JVM *);
 void	jvmExit(JVM *);
 void	PrintConstantUtf8(cp_info *, FILE *);
 VARIABLE	* getClassVariable(cp_info *, CLASS_DATA *);
-METHOD_DATA	* getMethod(char *, CLASS_DATA *);
+METHOD_DATA	* getMethod(char *, char *, CLASS_DATA *);
 bool		isSuperClass(CLASS_DATA *, CLASS_DATA *);
 
 void	pushOperand(u4, FRAME *);
