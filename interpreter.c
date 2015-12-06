@@ -1663,6 +1663,7 @@ switch(*thread->program_counter)
 
                 pushOperand(value, thread->jvm_stack);
             }
+            thread->program_counter++;
             break;
         }
     }
@@ -1674,6 +1675,32 @@ switch(*thread->program_counter)
 //	comparação tipo integral (long)
 void	Tcmp(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lcmp*/
+    u8 value1, value2;
+    u4 high, low;
+    s4 result;
+
+    low = popOperand(thread->jvm_stack);
+    high = popOperand(thread->jvm_stack);
+
+    value1 = (((u8) high) << 32) + low;
+
+    low = popOperand(thread->jvm_stack);
+    high = popOperand(thread->jvm_stack);
+
+    value2 = (((u8) high) << 32) + low;
+
+	if ( value1 == value2 ){
+        result = 0;
+	}else if ( value1 > value2 ){
+        result = 1;
+	}
+	else{
+        result = -1;
+	}
+
+	pushOperand(result, thread->jvm_stack);
+
+	thread->program_counter++;
 }
 
 // TcmpOP	0x95 a 0x98
@@ -1694,6 +1721,61 @@ void	ifOP(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ifge*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ifgt*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ifle*/
+    switch(*thread->program_counter)
+    {
+        case ifeq:
+        case ifne:
+        case iflt:
+        case ifge:
+        case ifgt:
+        case ifle:{
+            u1	branchbyte1 = * (thread->program_counter + 1);
+            u1	branchbyte2 = * (thread->program_counter + 2);
+            s2	branch = (branchbyte1 << 8) | branchbyte2;
+
+            s4 value = (s4)popOperand(thread->jvm_stack);
+
+            if(*thread->program_counter == ifeq){
+                if(value == 0){
+                    thread->program_counter += branch;
+                }else{
+                    thread->program_counter += 3;
+                }
+            }else if(*thread->program_counter == ifne){
+                if(value != 0){
+                    thread->program_counter += branch;
+                }else{
+                    thread->program_counter += 3;
+                }
+            }else if(*thread->program_counter == iflt){
+                if(value < 0){
+                    thread->program_counter += branch;
+                }else{
+                    thread->program_counter += 3;
+                }
+            }else if(*thread->program_counter == ifge){
+                if(value >= 0){
+                    thread->program_counter += branch;
+                }else{
+                    thread->program_counter += 3;
+                }
+            }else if(*thread->program_counter == ifgt){
+                if(value > 0){
+                    thread->program_counter += branch;
+                }else{
+                    thread->program_counter += 3;
+                }
+            }else if(*thread->program_counter == ifle){
+                if(value <= 0){
+                    thread->program_counter += branch;
+                }else{
+                    thread->program_counter += 3;
+                }
+            }
+
+            break;
+        }
+    }
 }
 
 // if_icmOP	0x9F a 0xA4
@@ -1710,18 +1792,53 @@ void	if_icmOP(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	s2	branch = (branchbyte1 << 8) | branchbyte2;
 
 /*	printf("\t(%+" PRId16 ")", branch);*/
-	u4	value2	= popOperand(thread->jvm_stack);
-	u4	value1	= popOperand(thread->jvm_stack);
+	s4	value2	= (s4) popOperand(thread->jvm_stack);
+	s4	value1	= (s4) popOperand(thread->jvm_stack);
 
 	switch(* thread->program_counter){
-		case	if_icmpge:
-			if(value1 >= value2){
-				thread->program_counter += (branch - 3);
+		case	if_icmpeq:
+			if(value1 == value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
 			}
 			break;
-
+        case	if_icmpne:
+			if(value1 != value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
+			}
+			break;
+        case	if_icmplt:
+			if(value1 < value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
+			}
+			break;
+		case	if_icmpge:
+			if(value1 >= value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
+			}
+			break;
+        case	if_icmpgt:
+			if(value1 > value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
+			}
+			break;
+        case	if_icmple:
+			if(value1 <= value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
+			}
+			break;
 	}
-	thread->program_counter += 3;
 }
 
 // if_acmOP	0xA5 e 0xA6
@@ -1729,6 +1846,30 @@ void	if_icmOP(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	if_acmOP(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.if_acmpeq*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.if_acmpne*/
+    u1	branchbyte1 = * (thread->program_counter + 1);
+	u1	branchbyte2 = * (thread->program_counter + 2);
+	s2	branch = (branchbyte1 << 8) | branchbyte2;
+
+/*	printf("\t(%+" PRId16 ")", branch);*/
+	s4	value2	= (s4) popOperand(thread->jvm_stack);
+	s4	value1	= (s4) popOperand(thread->jvm_stack);
+
+	switch(* thread->program_counter){
+		case	if_acmpeq:
+			if(value1 == value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
+			}
+			break;
+        case	if_acmpne:
+			if(value1 != value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
+			}
+			break;
+	}
 }
 
 // jump		0xA7 a 0xA9
@@ -1737,7 +1878,32 @@ void	jump(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.goto*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.jsr*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ret*/
-	thread->program_counter += 3;
+    u1	branchbyte1 = * (thread->program_counter + 1);
+	u1	branchbyte2 = * (thread->program_counter + 2);
+	s2	branch = (branchbyte1 << 8) | branchbyte2;
+
+	switch(* thread->program_counter){
+		case	goto_:
+            thread->program_counter += branch;
+			break;
+        case	jsr:
+            pushOperand((u4)(thread->program_counter += 3), thread->jvm_stack);
+            thread->program_counter += branch;
+			break;
+        case	ret:{
+            thread->program_counter++;
+            u2 index = (u2)*(thread->program_counter);
+
+            if (isWide == 1){
+                thread->program_counter++;
+                index = (index << 8) | *(thread->program_counter);
+                isWide = 0;
+            }
+
+            *thread->program_counter = (thread->jvm_stack)->local_variables[index];
+			break;
+        }
+	}
 }
 
 // switch_	0xAA e 0xAB
