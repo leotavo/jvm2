@@ -1,5 +1,53 @@
-MASTER ATUALIZADA. FAÇAM CLONE DELA ANTES DE FAZER CÒDIGO NOVO (01/12)
-ESCREVAM NO README QUAL FUNCAO VCS ESTAO MEXENDO!!!
+INTERPRETER - SITUAÇÃO:
+
+nop_ = OK 
+Tconst = OK
+Tipush = OK
+ldc_ = OK
+Tload = OK
+Taload = falta testar (arrays)
+Tstore = OK
+Tastore = falta testar (arrays)
+handleStack = testado dup, instruções dup2 com bug (long e double), falta testar as demais.
+Tadd = falta dadd, falta testar as demais
+Tsub = falta dsub, falta testar as demais
+Tmul = falta dmul, falta testar as demais
+Tdiv = falta ddiv, falta testar as demais
+Trem = NÃO IMPLEMENTADA
+Tneg = falta testar
+Tshl = falta testar
+Tshr = falta testar
+Tushr = NÃO IMPLEMENTADA
+Tand = falta testar
+Tor = NÃO IMPLEMENTADA
+Txor = NÃO IMPLEMENTADA
+Tinc = NÃO IMPLEMENTADA
+i2T = falta testar
+l2T = falta testar
+f2T = falta testar
+d2T = falta testar
+Tcmp = NÃO IMPLEMENTADA
+TcmpOP = NÃO IMPLEMENTADA
+ifOP = NÃO IMPLEMENTADA
+if_icmOP = NÃO IMPLEMENTADA
+if_acmOP = NÃO IMPLEMENTADA
+jump = NÃO IMPLEMENTADA
+switch = NÃO IMPLEMENTADA
+Treturn = NÃO IMPLEMENTADA
+accessField = falta getfield
+invoke = falta invokevirtual, invokedynamic, invokeinterface
+handleObject = NÃO IMPLEMENTADA
+athrow = NÃO IMPLEMENTADA
+properties = NÃO IMPLEMENTADA
+monitor = NÃO IMPLEMENTADA
+wide = INCOMPLETA
+ifNull = NÃO IMPLEMENTADA
+widejump = NÃO IMPLEMENTADA
+breakpoint = NÃO IMPLEMENTADA
+nonDefined = NÃO IMPLEMENTADA
+impdep = NÃO IMPLEMENTADA
+
+
 
 Corretude do interpretador:
 
@@ -43,67 +91,9 @@ opcionais:
 
 SITUAÇÃO ATUAL:
 
-Interpreter:
-FALTA:
-Tstore
-Tastore
-Tmul
-Tdiv
-Trem
-Tneg
-Tshl
-Tshr
-Tushr
-Tand
-Tor
-Txor
-Tinc
-i2T
-l2T
-f2T
-d2T
-Tcmp
-TcmpOP
-ifOP
-if_icmOP
-if_acmOP
-jump
-switch_
-Treturn => return OK
-accessField => (LEO) getstatic e putstatic ok
-invoke => (LEO) implementada a resolução e controle de acesso aos métodos.
-handleObject
-athrow_
-properties
-monitor
-ifnull
-widejump
-breakpoint
-nonDefined
-impdep
-
-
-Loading: 
-=> o que falta: 
-- Herança (herdar campos e metodos de superclasses) => FAZER EM TEMPO DE EXECUÇÃO, NA CHAMADA DE INSTRUCOES QUE REQUEIRAM FIELDS OU METODOS
-- inicializar fields com constant_value; = FAZER EM TEMPO DE EXECUÇÃO
-
-LinkingVerification:
-=> o que falta:
-- verificar outras regras da linguagem java que possam estar sendo violadas no classfile.
-- bytecodeVerifier: // FAZER EM TEMPO DE EXECUÇÃO
--- verificar se as instruções da JVM estao coerentes quanto aos operandos, pilha, vetor de variaveis locais, etc.
--- verificar inicialização de variaveis locais;
--- atribuição de valores à fields
--- metodo invocado com o correto numero e tipo de argumentos;
-
-
-LinkingResolution
-- resolve referências simbólicas durante a execução do interpretador
-
 
 Compilação:
-$ gcc -std=c99 *.c -o jvm
+$ gcc -std=c99 *.c -o jvm -lm
 
 Execução:
 Linux
