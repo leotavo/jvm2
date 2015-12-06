@@ -1269,6 +1269,33 @@ void	Tshr(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	Tushr(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.iushr*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lushr*/
+	int32_t operand1, operand2;
+	int64_t auxiliar1, auxiliar2;
+	u4 auxU4, aux2U4;
+
+	switch(*thread->program_counter) {
+		case iushr:
+			operand2 = (int32_t) popOperand(thread->jvm_stack);
+			operand1 = (int32_t) popOperand(thread->jvm_stack);
+			operand2 = operand2 & 0x1f;
+			pushOperand((operand1 >> operand2),thread->jvm_stack);
+			thread->program_counter++;
+		break;
+		case lushr:
+			aux2U4 = popOperand(thread->jvm_stack);
+			auxiliar2 = popOperand(thread->jvm_stack);
+			auxiliar1 = popOperand(thread->jvm_stack);
+			auxiliar1 = auxiliar1 << 32;
+			auxiliar1 |= auxiliar2;
+			aux2U4 = aux2U4 & 0x3f;
+			auxiliar1 = auxiliar1 >> aux2U4;
+			auxU4 = auxiliar1 >> 32;
+			pushOperand(auxU4, thread->jvm_stack);
+			auxU4 = auxiliar1 & 0xffffffff;
+			pushOperand(auxU4, thread->jvm_stack);
+			thread->program_counter++;
+		break;
+	}
 }
 
 
