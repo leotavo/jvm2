@@ -1339,6 +1339,34 @@ void	Tand(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	Tor(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ior*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lor*/
+	switch(*thread->program_counter) {
+		case ior:;
+			u4	first_op, second_op;
+
+			first_op = popOperand(thread->jvm_stack);
+			second_op = popOperand(thread->jvm_stack);
+			pushOperand((first_op | second_op), thread->jvm_stack);
+			break;
+		case lor:;
+			u4 result, aux;
+			s8 first_l, second_l;
+
+			aux = popOperand(thread->jvm_stack);
+			first_l = popOperand(thread->jvm_stack);
+			first_l = first_l << 32;
+			first_l |= aux;
+			aux = popOperand(thread->jvm_stack);
+			second_l = popOperand(thread->jvm_stack);
+			second_l = second_l << 32;
+			second_l |= aux;
+			first_l = first_l | second_op;
+			result = first_l >> 32;
+			pushOperand(result, thread->jvm_stack);
+			result = first_l & 0xffffffff;
+			pushOperand(result, thread->jvm_stack);
+			break;
+	}
+	thread->program_counter++;
 }
 
 // Txor		0x82 e 0x83
@@ -1346,6 +1374,34 @@ void	Tor(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	Txor(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ixor*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lxor*/
+	switch(*thread->program_counter) {
+		case ior:;
+			u4	first_op, second_op;
+
+			first_op = popOperand(thread->jvm_stack);
+			second_op = popOperand(thread->jvm_stack);
+			pushOperand((first_op ^ second_op), thread->jvm_stack);
+			break;
+		case lor:;
+			u4 result, aux;
+			s8 first_l, second_l;
+
+			aux = popOperand(thread->jvm_stack);
+			first_l = popOperand(thread->jvm_stack);
+			first_l = first_l << 32;
+			first_l |= aux;
+			aux = popOperand(thread->jvm_stack);
+			second_l = popOperand(thread->jvm_stack);
+			second_l = second_l << 32;
+			second_l |= aux;
+			first_l = first_l ^ second_op;
+			result = first_l >> 32;
+			pushOperand(result, thread->jvm_stack);
+			result = first_l & 0xffffffff;
+			pushOperand(result, thread->jvm_stack);
+			break;
+	}
+	thread->program_counter++;
 }
 
 /*	INCREMENTO	*/
@@ -1590,63 +1646,6 @@ void	f2T(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.f2i*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.f2l*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.f2d*/
-    switch(*thread->program_counter)
-    {
-        case f2i:{
-            u4 value;
-            float float_value;
-
-            value = popOperand(thread->jvm_stack);
-            memcpy(&float_value, &value, sizeof(u4));
-
-            value = (u4)((s4)float_value);
-            pushOperand(value, thread->jvm_stack);
-
-            thread->program_counter++;
-            break;
-        }
-        case f2l:{
-            u4 value;
-            u8 long_value;
-            float float_value;
-
-            value = popOperand(thread->jvm_stack);
-            memcpy(&float_value, &value, sizeof(u4));
-
-            long_value = (u8) ((s8)float_value);
-            pushOperand(long_value, thread->jvm_stack);
-
-            thread->program_counter++;
-            break;
-        }
-        case f2d:{
-            u8 double_value = 0;
-            u4 value,high, low, bits;
-            float float_value;
-
-            value = popOperand(thread->jvm_stack);
-
-            float_value = (float) value;
-
-            memcpy(&bits, &float_value, sizeof(u4));
-            s4 s = ((bits >> 31) == 0) ? 1 : -1;
-            s4 e = ((bits >> 23) & 0xff);
-            s4 m = (e == 0) ? (bits & 0x7fffff) << 1 : (bits & 0x7fffff) | 0x800000;
-
-            s4 exp = 1023 + (e - 127);
-
-            double_value = ((double_value + s) << 63) + ((double_value + exp) << 52) + ((double_value + m) << 29);
-
-            high = double_value >> 32;
-            low = double_value & 0xffffffff;
-
-            pushOperand(high, thread->jvm_stack);
-            pushOperand(low, thread->jvm_stack);
-
-            thread->program_counter++;
-            break;
-        }
-    }
 }
 
 // d2T		0x8E a 0x90
@@ -1655,69 +1654,6 @@ void	d2T(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.d2i*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.d2l*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.d2f*/
-switch(*thread->program_counter)
-    {
-        case d2i:
-        case d2l:
-        case d2f:{
-            s8 value;
-            u4 high, low;
-            s4 s, e;
-            s8 m;
-
-            low = popOperand(thread->jvm_stack);
-            high = popOperand(thread->jvm_stack);
-
-            value = (((s8) high) << 32) + low;
-				switch(value){
-					case 0x7ff0000000000000L:
-						//printf("\n\t\tDouble:\t\t\t+∞\n\n");
-						break;
-					case 0xfff0000000000000L:
-						//printf("\n\t\tDouble:\t\t\t-∞\n\n");
-						break;
-					default:
-					if((value >= 0x7ff0000000000001L && value <= 0x7ffffffffffffL) ||
-					(value >= 0xfff0000000000001L && value <= 0xffffffffffffffffL )){
-						//printf("\n\t\tDouble:\t\t\tNaN\n\n");
-					}
-					else{
-						s = ((value >> 63) == 0) ? 1 : -1;
-						e = ((value >> 52) & 0x7ffL);
-						m = (e == 0) ?
-						(value & 0xfffffffffffffL) << 1 :
-						(value & 0xfffffffffffffL) | 0x10000000000000L;
-						//printf("\n\t\tDouble:\t\t\t%f\n\n", (double) s*m*pow(2, (e-1075)));
-					}
-				}
-
-            if(*thread->program_counter == d2i){
-                s4 int_value;
-
-                int_value = (s4)(s*m*pow(2, (e-1075)));
-                pushOperand((u4)int_value, thread->jvm_stack);
-
-            }else if(*thread->program_counter == d2l){
-                u8 long_value = (u8)((s8)s*m*pow(2, (e-1075)));
-
-                u4 high = long_value >> 32;
-                u4 low = long_value & 0xffffffff;
-
-                pushOperand(high, thread->jvm_stack);
-                pushOperand(low, thread->jvm_stack);
-            }else if(*thread->program_counter == d2f){
-                float float_value;
-                u4 value;
-
-                float_value = s*m*pow(2, (e-1075));
-
-                memcpy(&value, &float_value, sizeof(u4));
-
-                pushOperand(value, thread->jvm_stack);
-            }
-            break;
-        }
-    }
 }
 
 /*	COMPARAÇÃO	*/
