@@ -16,7 +16,7 @@ public class Print{
 		short	s = 32767;
 		int	i = 2147483647;
 		float	f = 3.4E38f;
-		long	l = 3000000000L;
+		long	l = 9223372036854775807L;
 		double	d = 1.7E308;
 		String	str = "Hello World";
 		
