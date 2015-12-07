@@ -1255,6 +1255,33 @@ void	Tshr(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	Tushr(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.iushr*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lushr*/
+	int32_t operand1, operand2;
+	int64_t auxiliar1, auxiliar2;
+	u4 auxU4, aux2U4;
+ 
+	switch(*thread->program_counter) {
+		case iushr:
+			operand2 = (int32_t) popOperand(thread->jvm_stack);
+			operand1 = (int32_t) popOperand(thread->jvm_stack);
+			operand2 = operand2 & 0x1f;
+			pushOperand((operand1 >> operand2),thread->jvm_stack);
+			thread->program_counter++;
+		break;
+		case lushr:
+			aux2U4 = popOperand(thread->jvm_stack);
+			auxiliar2 = popOperand(thread->jvm_stack);
+			auxiliar1 = popOperand(thread->jvm_stack);
+			auxiliar1 = auxiliar1 << 32;
+			auxiliar1 |= auxiliar2;
+			aux2U4 = aux2U4 & 0x3f;
+			auxiliar1 = auxiliar1 >> aux2U4;
+			auxU4 = auxiliar1 >> 32;
+			pushOperand(auxU4, thread->jvm_stack);
+			auxU4 = auxiliar1 & 0xffffffff;
+			pushOperand(auxU4, thread->jvm_stack);
+			thread->program_counter++;
+		break;
+	}
 }
 
 
@@ -1326,6 +1353,34 @@ void	Tand(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	Tor(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ior*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lor*/
+	switch(*thread->program_counter) {
+		case ior:;
+			u4	first_op, second_op;
+
+			first_op = popOperand(thread->jvm_stack);
+			second_op = popOperand(thread->jvm_stack);
+			pushOperand((first_op | second_op), thread->jvm_stack);
+			break;
+		case lor:;
+			u4 result, aux;
+			s8 first_l, second_l;
+
+			aux = popOperand(thread->jvm_stack);
+			first_l = popOperand(thread->jvm_stack);
+			first_l = first_l << 32;
+			first_l |= aux;
+			aux = popOperand(thread->jvm_stack);
+			second_l = popOperand(thread->jvm_stack);
+			second_l = second_l << 32;
+			second_l |= aux;
+			first_l = first_l | second_op;
+			result = first_l >> 32;
+			pushOperand(result, thread->jvm_stack);
+			result = first_l & 0xffffffff;
+			pushOperand(result, thread->jvm_stack);
+			break;
+	}
+	thread->program_counter++;
 }
 
 // Txor		0x82 e 0x83
@@ -1333,6 +1388,34 @@ void	Tor(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	Txor(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ixor*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lxor*/
+	switch(*thread->program_counter) {
+		case ior:;
+			u4	first_op, second_op;
+
+			first_op = popOperand(thread->jvm_stack);
+			second_op = popOperand(thread->jvm_stack);
+			pushOperand((first_op ^ second_op), thread->jvm_stack);
+			break;
+		case lor:;
+			u4 result, aux;
+			s8 first_l, second_l;
+
+			aux = popOperand(thread->jvm_stack);
+			first_l = popOperand(thread->jvm_stack);
+			first_l = first_l << 32;
+			first_l |= aux;
+			aux = popOperand(thread->jvm_stack);
+			second_l = popOperand(thread->jvm_stack);
+			second_l = second_l << 32;
+			second_l |= aux;
+			first_l = first_l ^ second_op;
+			result = first_l >> 32;
+			pushOperand(result, thread->jvm_stack);
+			result = first_l & 0xffffffff;
+			pushOperand(result, thread->jvm_stack);
+			break;
+	}
+	thread->program_counter++;
 }
 
 /*	INCREMENTO	*/
