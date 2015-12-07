@@ -1,4 +1,4 @@
-INTERPRETER - SITUAÇÃO:
+﻿INTERPRETER - SITUAÇÃO:
 
 nop_ = OK (DANIEL)
 Tconst = OK (DANIEL)
@@ -26,12 +26,12 @@ i2T = falta testar (DANIEL)
 l2T = falta testar (DANIEL)
 f2T = falta testar (DANIEL)
 d2T = falta testar (DANIEL)
-Tcmp = NÃO IMPLEMENTADA
-TcmpOP = NÃO IMPLEMENTADA
-ifOP = NÃO IMPLEMENTADA
-if_icmOP = NÃO IMPLEMENTADA
-if_acmOP = NÃO IMPLEMENTADA
-jump = NÃO IMPLEMENTADA
+Tcmp = falta testar (DANIEL)
+TcmpOP = falta testar (DANIEL)
+ifOP = falta testar (DANIEL)
+if_icmOP = falta testar (DANIEL)
+if_acmOP = falta testar (DANIEL)
+jump = falta testar (DANIEL)
 switch = NÃO IMPLEMENTADA
 Treturn = NÃO IMPLEMENTADA
 accessField = falta getfield (LEO)
@@ -41,8 +41,8 @@ athrow = NÃO IMPLEMENTADA
 properties = NÃO IMPLEMENTADA
 monitor = NÃO IMPLEMENTADA
 wide = INCOMPLETA
-ifNull = NÃO IMPLEMENTADA
-widejump = NÃO IMPLEMENTADA
+ifNull = falta testar (DANIEL)
+widejump = falta testar (DANIEL)
 breakpoint = NÃO IMPLEMENTADA
 nonDefined = NÃO IMPLEMENTADA
 impdep = NÃO IMPLEMENTADA

@@ -1556,7 +1556,7 @@ void	f2T(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 
             value = popOperand(thread->jvm_stack);
 
-            float_value = (float) value;
+            memcpy(&float_value, &value, sizeof(u4));
 
             memcpy(&bits, &float_value, sizeof(u4));
             s4 s = ((bits >> 31) == 0) ? 1 : -1;
@@ -1664,12 +1664,12 @@ void	Tcmp(METHOD_DATA * method, THREAD * thread, JVM * jvm){
     low = popOperand(thread->jvm_stack);
     high = popOperand(thread->jvm_stack);
 
-    value1 = (((u8) high) << 32) + low;
+    value2 = (((u8) high) << 32) + low;
 
     low = popOperand(thread->jvm_stack);
     high = popOperand(thread->jvm_stack);
 
-    value2 = (((u8) high) << 32) + low;
+    value1 = (((u8) high) << 32) + low;
 
 	if ( value1 == value2 ){
         result = 0;
@@ -1680,7 +1680,7 @@ void	Tcmp(METHOD_DATA * method, THREAD * thread, JVM * jvm){
         result = -1;
 	}
 
-	pushOperand(result, thread->jvm_stack);
+	pushOperand((u4)result, thread->jvm_stack);
 
 	thread->program_counter++;
 }
@@ -1692,6 +1692,67 @@ void	TcmpOP(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.fcmpg*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.dcmpl*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.dcmpg*/
+    switch(*thread->program_counter)
+    {
+        case fcmpl:
+        case fcmpg:{
+            s4 result;
+            u4 value;
+            float float_value1, float_value2;
+
+            value = popOperand(thread->jvm_stack);
+            memcpy(&float_value2, &value, sizeof(u4));
+
+            value = popOperand(thread->jvm_stack);
+            memcpy(&float_value1, &value, sizeof(u4));
+
+            if ( float_value1 == float_value2 ){
+                result = 0;
+            }else if ( float_value1 > float_value2 ){
+                result = 1;
+            }
+            else{
+                result = -1;
+            }
+
+            pushOperand((u4)result, thread->jvm_stack);
+
+            thread->program_counter++;
+            break;
+        }
+        case dcmpl:
+        case dcmpg:{
+            u8	first_double, second_double;
+			double double_value1, double_value2;
+			s4 result;
+			u4 low, high;
+
+			// desempilha operandos
+			low = popOperand(thread->jvm_stack);
+			high = popOperand(thread->jvm_stack);
+			first_double = ((u8) high << 32) | low;
+            memcpy(&double_value2, &first_double, sizeof(u8));
+
+			low = popOperand(thread->jvm_stack);
+			high = popOperand(thread->jvm_stack);
+			second_double = ((u8) high << 32) | low;
+            memcpy(&double_value1, &first_double, sizeof(u8));
+
+			if ( double_value1 == double_value2 ){
+                result = 0;
+            }else if ( double_value1 > double_value2 ){
+                result = 1;
+            }
+            else{
+                result = -1;
+            }
+
+            pushOperand((u4)result, thread->jvm_stack);
+
+            thread->program_counter++;
+            break;
+        }
+    }
 }
 
 // ifOP		0x99 a 0x9E
