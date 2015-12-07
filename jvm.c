@@ -94,7 +94,7 @@ The loading process consists of three basic activities. To load a type, the Java
 		exit(EXIT_FAILURE);
 	}
 	else{
-/*		printf("Carregando %s\n", class_filename);*/
+		printf("\nLoading\t%s\n\n", class_filename);
 		cf = loadClassFile(class_binary_file);
 	}
 /*	puts("DEBUG:\tCRIANDO CLASS_DATA");*/
@@ -507,15 +507,18 @@ void	executeMethod(char * method_name, char * method_descriptor, CLASS_DATA * cd
 			frame->return_value = NULL;
 			frame->prox = thread->jvm_stack;
 			thread->jvm_stack = frame;
-			
-/*			printf("\nmétodo: ");*/
-/*			PrintConstantUtf8(cd->class_name, stdout);*/
-/*			printf(".%s\n", method_name);*/
+			puts("=======================");
+			printf("método: ");
+			PrintConstantUtf8(cd->class_name, stdout);
+			printf(".%s\n", method_name);
+			puts("=======================");
 			// CHAMA O INTERPRETADOR
 			interpreter(method, thread, jvm);
-/*			printf("\nEnd\t");*/
-/*			PrintConstantUtf8(cd->class_name, stdout);*/
-/*			printf(".%s\n", method_name);*/
+			puts("=======================");
+			printf("End\t");
+			PrintConstantUtf8(cd->class_name, stdout);
+			printf(".%s\n", method_name);
+			puts("=======================");
 			
 		}
 		else{
@@ -555,6 +558,9 @@ void	pushOperand(u4 word, FRAME * frame){
 	aux->value = word;
 	aux->prox = frame->operand_stack;
 	frame->operand_stack = aux;
+/*	char	* char_ = (char *) word;*/
+/*	printf("push:\thexa = 0x%04" PRIX32 "\tunsigned = %" PRIu32 "\tsigned = %" PRIu32 "\n",*/
+/*		word, word, word);*/
 }
 
 u4	popOperand(FRAME * frame){
@@ -563,6 +569,9 @@ u4	popOperand(FRAME * frame){
 		frame->operand_stack = aux->prox;
 		u4	word = aux->value;
 		free(aux);
+/*		char	* char_ = (char *) word;*/
+/*		printf("pop:\thexa = 0x%04" PRIX32 "\tunsigned = %" PRIu32 "\tsigned = %" PRIu32 "\n",*/
+/*			word, word, word);*/
 		return	word;
 	}
 	else{
