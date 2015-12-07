@@ -1,51 +1,63 @@
 INTERPRETER - SITUAÇÃO:
 
+Instruções não implementadas:
+
+Tadd = falta dadd (MATHEUS E LEO)
+Tsub = falta dsub (MATHEUS E LEO)
+Tmul = falta dmul (MATHEUS E LEO)
+Tdiv = falta ddiv (MATHEUS E LEO)
+Trem = NÃO IMPLEMENTADA (usa Tmul Tdiv e Tsub)
+Tinc = NÃO IMPLEMENTADA (MATHEUS)
+TcmpOP = NÃO IMPLEMENTADA
+switch = NÃO IMPLEMENTADA
+Treturn = NÃO IMPLEMENTADA (apenas return OK)
+accessField = falta getfield (LEO)
+invoke = falta invokevirtual, invokedynamic, invokeinterface (LEO)
+handleObject = falta newarray, anewarray, arraylength, multianewarray (LEO)
+athrow = NÃO IMPLEMENTADA (opcional)
+properties = NÃO IMPLEMENTADA
+monitor = NÃO IMPLEMENTADA (opcional)
+breakpoint = NÃO IMPLEMENTADA (opcional)
+impdep = NÃO IMPLEMENTADA (opcional)
+
+
+Instruções a serem testadas
+wide = falta testar (verificar sua implementação para as instruções relacionadas)
+Taload = falta testar (arrays) (DANIEL)
+Tastore = falta testar (arrays) (DANIEL)
+Tadd = falta dadd, falta testar as demais (MATHEUS E LEO)
+Tsub = falta dsub, falta testar as demais (MATHEUS E LEO)
+Tmul = falta dmul, falta testar as demais (MATHEUS E LEO)
+Tdiv = falta ddiv, falta testar as demais (MATHEUS E LEO)
+handleStack = testado dup, instruções dup2 com bug (long e double), falta testar as demais. (DANIEL)
+Tneg = falta testar (DANIEL)
+Tshl = falta testar (YTALO)
+Tshr = falta testar (YTALO)
+Tushr = falta testar (YTALO)
+Tand = falta testar (GABRIEL)
+Tor = falta testar (MATHEUS)
+Txor = falta testar (MATHEUS)
+i2T = falta testar (DANIEL)
+l2T = falta testar (DANIEL)
+f2T = falta testar (DANIEL)
+d2T = falta testar (DANIEL)
+Tcmp = falta testar (DANIEL)
+ifOP = falta testar (DANIEL)
+if_icmOP = falta testar (DANIEL)
+if_acmOP = falta testar (DANIEL)
+jump = falta testar (DANIEL)
+ifNull = falta testar (DANIEL)
+widejump = falta testar (DANIEL)
+
+Instruções funcionando:
 nop_ = OK (DANIEL)
 Tconst = OK (DANIEL)
 Tipush = OK (DANIEL)
 ldc_ = OK (DANIEL)
 Tload = OK (DANIEL)
-Taload = falta testar (arrays) (DANIEL)
 Tstore = OK (DANIEL)
-Tastore = falta testar (arrays) (DANIEL)
-handleStack = testado dup, instruções dup2 com bug (long e double), falta testar as demais. (DANIEL)
-Tadd = falta dadd, falta testar as demais (MATHEUS E LEO)
-Tsub = falta dsub, falta testar as demais (MATHEUS E LEO)
-Tmul = falta dmul, falta testar as demais (MATHEUS E LEO)
-Tdiv = falta ddiv, falta testar as demais (MATHEUS E LEO)
-Trem = NÃO IMPLEMENTADA (usa Tmul Tdiv e Tsub)
-Tneg = falta testar (DANIEL)
-Tshl = falta testar (YTALO)
-Tshr = falta testar (YTALO)
-Tushr = NÃO IMPLEMENTADA
-Tand = falta testar (GABRIEL)
-Tor = NÃO IMPLEMENTADA (MATHEUS)
-Txor = NÃO IMPLEMENTADA (MATHEUS)
-Tinc = NÃO IMPLEMENTADA (MATHEUS)
-i2T = falta testar (DANIEL)
-l2T = falta testar (DANIEL)
-f2T = falta testar (DANIEL)
-d2T = falta testar (DANIEL)
-Tcmp = NÃO IMPLEMENTADA
-TcmpOP = NÃO IMPLEMENTADA
-ifOP = NÃO IMPLEMENTADA
-if_icmOP = NÃO IMPLEMENTADA
-if_acmOP = NÃO IMPLEMENTADA
-jump = NÃO IMPLEMENTADA
-switch = NÃO IMPLEMENTADA
-Treturn = NÃO IMPLEMENTADA
-accessField = falta getfield (LEO)
-invoke = falta invokevirtual, invokedynamic, invokeinterface (LEO)
-handleObject = falta newarray, anewarray, arraylength, multianewarray (LEO)
-athrow = NÃO IMPLEMENTADA
-properties = NÃO IMPLEMENTADA
-monitor = NÃO IMPLEMENTADA
-wide = INCOMPLETA
-ifNull = NÃO IMPLEMENTADA
-widejump = NÃO IMPLEMENTADA
-breakpoint = NÃO IMPLEMENTADA
-nonDefined = NÃO IMPLEMENTADA
-impdep = NÃO IMPLEMENTADA
+nonDefined = OK
+
 
 
 
