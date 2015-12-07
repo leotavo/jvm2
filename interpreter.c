@@ -2567,7 +2567,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				}
 			}
 			bool	findMethod = false;
-			super_class = method->class_data;
+			super_class = class_objectref;
 			while(super_class && !findMethod){
 				if(invoked_method = getMethod(method_name, method_descriptor, super_class)){
 					if(!(invoked_method->modifiers & ACC_STATIC)){
@@ -2695,6 +2695,76 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			backupPC = thread->program_counter;
 			executeMethod(method_name, method_descriptor, method_class, jvm, thread, NULL, nargs, args);
 			thread->program_counter = backupPC;
+			break;
+		case	invokeinterface:
+			if(method_class->modifiers != ACC_INTERFACE){
+				puts("IncompatibleClassChangeError");
+				exit(EXIT_FAILURE);
+			}
+			OBJECT	* objectref = (OBJECT *) popOperand(thread->jvm_stack);
+			if(!objectref){
+				puts("NullPointerException");
+				exit(EXIT_FAILURE);
+			}
+			
+			if(!invoked_method->modifiers & ACC_PUBLIC){
+				puts(" IllegalAccessError");
+				exit(EXIT_FAILURE);
+			}
+			
+			if(invoked_method->modifiers & ACC_STATIC){
+				puts("IncompatibleClassChangeError");
+				exit(EXIT_FAILURE);
+			}
+			if(invoked_method->modifiers & ACC_NATIVE){
+				puts("UnsatisfiedLinkError");
+				exit(EXIT_FAILURE);
+			}
+			if((!strcmp(method_name, "<init>")) || (!strcmp(method_name, "<clinit>"))){
+				puts("InvokeInterfaceInitError");
+				exit(EXIT_FAILURE);
+			}
+			u1	count = * (thread->program_counter + 3);
+			if(!count){
+				puts("InvokeInterfaceError");
+				exit(EXIT_FAILURE);
+			}
+			
+			u4	fourth_operand = popOperand(thread->jvm_stack);
+			if(fourth_operand){
+				puts("InvokeInterfaceError");
+				exit(EXIT_FAILURE);
+			}
+			OBJECT	* objectref = (OBJECT *) popOperand(thread->jvm_stack);
+			CLASS_DATA	* class_objectref = objectref->class_data_reference;
+			
+			bool	findMethod = false;
+			super_class = class_objectref;
+			while(super_class && !findMethod){
+				if(invoked_method = getMethod(method_name, method_descriptor, super_class)){
+					if(!(invoked_method->modifiers & ACC_STATIC)){
+						backupPC = thread->program_counter;
+						executeMethod(method_name, method_descriptor, super_class, 
+								jvm, thread, NULL, nargs, args);
+						thread->program_counter = backupPC;
+						findMethod = true;
+					}
+					else{
+						super_class = getSuperClass(super_class->classfile, jvm);
+					}
+				}
+				else{
+					super_class = getSuperClass(super_class->classfile, jvm);
+				}
+			}
+			if(!findMethod){
+				puts("AbstractMethodError:");
+				exit(EXIT_FAILURE);
+			}
+			thread->program_counter += 2;
+			break;
+		case	invokedynamic:
+			thread->program_counter += 2;
 			break;
 	}
 	thread->program_counter += 3;
