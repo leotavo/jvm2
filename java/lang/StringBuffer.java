@@ -1,13 +1,7 @@
 package	java.lang;
 
 
-public	class	StringBuffer{
-	private	String	str;
-	
-	public	StringBuffer(){
-		this.str = new String();
-	}
-		
+public	class	StringBuffer{		
 	public	native	StringBuffer	append(boolean z);
 	public	native	StringBuffer	append(byte b);
 	public	native	StringBuffer	append(char c);
@@ -16,10 +10,9 @@ public	class	StringBuffer{
 	public	native	StringBuffer	append(long l);
 	public	native	StringBuffer	append(float f);
 	public	native	StringBuffer	append(double d);
+	public	native	StringBuffer	append(String s);
 
-	public	String		toString(){
-		return	str;
-	}
+	public	native	String		toString();
 }
 
 

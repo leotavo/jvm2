@@ -7,6 +7,7 @@
 #include	<stdlib.h>
 #include	<string.h>
 #include	<math.h>
+#include	<wchar.h>
 
 
 /*	ARQUIVOS DE TESTE
@@ -688,7 +689,7 @@ void	handleStack(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			pushOperand(value2, thread->jvm_stack);
 			break;
 	}
-	thread->program_counter;
+	thread->program_counter++;
 }
 
 /*	INSTRUÇÕES ARITMETICAS	*/
@@ -1761,7 +1762,7 @@ void	if_icmOP(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u1	branchbyte2 = * (thread->program_counter + 2);
 	s2	branch = (branchbyte1 << 8) | branchbyte2;
 
-/*	printf("\t(%+" PRId16 ")", branch);*/
+	printf("\t%" PRId16 "\t(%+" PRId16 ")", (u2) (thread->program_counter - method->bytecodes) + branch, branch);
 	u4	value2	= popOperand(thread->jvm_stack);
 	u4	value1	= popOperand(thread->jvm_stack);
 
@@ -1979,7 +1980,6 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					break;
 				case	REF_INST:
 					(var->value).u.InstanceReference.reference = (OBJECT *) popOperand(thread->jvm_stack);
-/*					printf("%p\n" , (var->value).u.ArrayReference.reference);	*/
 					break;
 				case	SHORT:
 					(var->value).u.Short.short_ = (s2) popOperand(thread->jvm_stack);
@@ -2023,7 +2023,6 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					break;
 				case	REF_INST:
 					value.u.InstanceReference.reference = (OBJECT *) popOperand(thread->jvm_stack);
-/*					printf("%p\n" , value.u.ArrayReference.reference);	*/
 					break;
 				case	SHORT:
 					value.u.Short.short_ = (s2) popOperand(thread->jvm_stack);
@@ -2033,7 +2032,7 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					break;
 				case	REF_ARRAY:
 					value.u.ArrayReference.reference = (ARRAY *) popOperand(thread->jvm_stack);
-
+					
 					break;
 				case	DOUBLE:
 					value.u.Double.high_bytes = popOperand(thread->jvm_stack);
@@ -2057,7 +2056,7 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("NoSuchFieldError");
 				exit(EXIT_FAILURE);
 			}
-			var->value = value;
+			var->value = value;	
 			break;
 	}
 
@@ -2095,7 +2094,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	char	* method_name = cp_method_name->u.Utf8.bytes;
 	method_name[cp_method_name->u.Utf8.length] = '\0';
 
-	printf("\t<%s.%s>", class_name, method_name);
+	printf("\t<%s.%s>\n", class_name, method_name);
 
 	// descritor do método
 	cp_info	* cp_method_descriptor = cp + cp_name_and_type->u.NameAndType.descriptor_index - 1;
@@ -2128,6 +2127,8 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		puts("=======================");
 	}
 	bool	is_print = false;
+	bool	is_append = false;
+	bool	is_toString = false;
 
 	METHOD_DATA	* invoked_method = getMethod(method_name, method_descriptor, method_class);
 	
@@ -2199,16 +2200,9 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						break;
 					case	CHAR:; // BUG PARA UNICODE CHAR
 						u2	char_ = popOperand(thread->jvm_stack);
-						printf("char_ = %" PRId16 "\t", char_);
-						char	* utf8_char = malloc(3*sizeof(CHAR));
-						utf8_char = (char *) &char_;
+					
+						char * utf8_char = (char *) &char_;
 						utf8_char[2] = '\0';
-						u1	aux = utf8_char[1];
-						if(aux){
-							utf8_char[1] = utf8_char[0];
-							utf8_char[0] = aux;
-						}
-/*						printf("%" PRIu16 " - %d - %d\n", char_, utf8_char[0], utf8_char[1]);*/
 						printf("%s", utf8_char);
 						break;
 					case	SHORT:
@@ -2231,11 +2225,12 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 								isValidFloat = false;
 								break;
 							default:
-								if((float_bits >= 0x7f800001 || float_bits <= 0x7fffffff) ||
-									(float_bits >= 0xff800001 || float_bits <= 0xffffffff)){
+								if((float_bits >= 0x7f800001 && float_bits <= 0x7fffffff) ||
+									(float_bits >= 0xff800001 && float_bits <= 0xffffffff)){
 									printf("NaN");
+									isValidFloat = false;
 								}
-								isValidFloat = false;
+								
 						}
 						if(isValidFloat){
 							s4 s = ((float_bits >> 31) == 0) ? 1 : -1;
@@ -2243,13 +2238,14 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 							s4 m = (e == 0) ?
 								(float_bits & 0x7fffff) << 1 :
 								(float_bits & 0x7fffff) | 0x800000;
-							printf("%f", (float) s * m * pow(2,e - 150));
+							printf("%E", (float) s * m * pow(2,e - 150));
 						}
 						break;
 					case	LONG:;
 						u4	long_low_bytes = popOperand(thread->jvm_stack);
 						u4	long_high_bytes = popOperand(thread->jvm_stack);
 						s8	long_ = ((u8) long_high_bytes << 32) | long_low_bytes;
+	
 						printf("%" PRId64, long_);
 						break;
 					case	DOUBLE:;
@@ -2268,11 +2264,12 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 								isValidDouble = false;
 								break;
 							default:
-								if((double_bits >= 0x7ff0000000000001L || double_bits <= 0x7ffffffffffffL) ||
-									(double_bits >= 0xfff0000000000001L || double_bits <= 0x7ffffffffffffL)){
+								if((double_bits >= 0x7ff0000000000001L && double_bits <= 0x7ffffffffffffL) ||
+									(double_bits >= 0xfff0000000000001L && double_bits <= 0x7ffffffffffffL)){
 									printf("NaN");
+									isValidDouble = false;
 								}
-								isValidDouble = false;
+
 						}
 						if(isValidDouble){
 							s4 s = ((double_bits >> 63) == 0) ? 1 : -1;
@@ -2280,7 +2277,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 							s8 m = (e == 0) ?
 								(double_bits & 0xfffffffffffffL) << 1 :
 								(double_bits & 0xfffffffffffffL) | 0x10000000000000L;
-							printf("%lf", (double) s * m * pow(2,e - 1075));
+							printf("%E", (double) s * m * pow(2,e - 1075));
 						}
 						break;
 					case	REF_INST: // STRING
@@ -2291,64 +2288,232 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				}
 			}
 		}
-	}
-	
-	
-	// desempilha operandos e coloca no vetor de variaveis locais;
-	u2	nargs = 0;
-	u4	* args = (u4 *) malloc(invoked_method->locals_size * sizeof(u4));
-	u2	i = 1;
-	while(method_descriptor[i] != ')'){
-		switch(method_descriptor[i]){
-			case	REF_INST:
-				while(method_descriptor[i] != ';'){
-					i++;
-				}
-			case	BOOLEAN:
-			case	BYTE:
-			case	CHAR:
-			case	FLOAT:
-			case	INT:
-			case	SHORT:
-				args[nargs] = popOperand(thread->jvm_stack);
-				nargs++;
-				break;
-			case	LONG:
-			case	DOUBLE:
-				args[nargs] = popOperand(thread->jvm_stack);
-				nargs++;
-				args[nargs] = popOperand(thread->jvm_stack);
-				nargs++;
-				break;
-			case	REF_ARRAY:
-				while(method_descriptor[i] == '['){
-					i++;
-				}
-				switch(method_descriptor[i]){
-					case	REF_INST:
-						while(method_descriptor[i] != ';'){
-							i++;
+		else if(!strcmp(class_name, "java/lang/StringBuffer")){
+			if(!strcmp(method_name, "append")){
+				is_append = true;
+				char	* append_string;
+				u8	length;
+				switch(method_descriptor[1]){
+					case	BOOLEAN:;
+						u1	boolean = (u1) popOperand(thread->jvm_stack);
+						
+						if(boolean){
+							append_string = (char *) malloc(5 * sizeof(char));
+							append_string[0] = '\0';
+							strcpy(append_string, "true");
 						}
-					case	BOOLEAN:
-					case	BYTE:
-					case	CHAR:
-					case	FLOAT:
-					case	INT:
-					case	SHORT:
-					case	LONG:
-					case	DOUBLE:
-						args[nargs] = popOperand(thread->jvm_stack);
-						nargs++;
+						else{
+							append_string = (char *) malloc(6 * sizeof(char));
+							append_string[0] = '\0';
+							strcpy(append_string, "false");
+						}
+						break;
+					case	BYTE:;
+						s1	byte = (s1) popOperand(thread->jvm_stack);
+
+						if(byte < 0){
+							length = -(byte/10) + 2;
+							length++;
+						}
+						else{
+							length = byte/10 + 2;
+						}
+						append_string = (char *) malloc(length * sizeof(char));
+						sprintf(append_string, "%" PRId8, byte);
+						break;
+					case	CHAR:;
+						u2	char_ = (u2) popOperand(thread->jvm_stack);
+					
+						append_string = (char *) malloc(2 * sizeof(char));
+						sprintf(append_string, "%c", (char) char_);
+						break;
+					case	SHORT:;
+						s2	short_ = (s2) popOperand(thread->jvm_stack);
+						
+						if(byte < 0){
+							length = -(short_/10) + 2;
+							length++;
+						}
+						else{
+							length = short_/10 + 2;
+						}
+						append_string = (char *) malloc(length * sizeof(char));
+						sprintf(append_string, "%" PRId16, short_);
+						break;
+					case	INT:;
+						s4	int_ = (s4) popOperand(thread->jvm_stack);
+						
+						if(byte < 0){
+							length = -(int_/10) + 2;
+							length++;
+						}
+						else{
+							length = int_/10 + 2;
+						}
+						
+						append_string = (char *) malloc(length * sizeof(char));
+						sprintf(append_string, "%" PRId32, int_);
+						break;
+					case	LONG:;
+						u4	long_low_bytes = popOperand(thread->jvm_stack);
+						u4	long_high_bytes = popOperand(thread->jvm_stack);
+						s8	long_ = ((u8) long_high_bytes << 32) | long_low_bytes;
+						
+						if(byte < 0){
+							length = -(long_/10) + 2;
+							length++;
+						}
+						else{
+							length = long_/10 + 2;
+						}
+						
+						append_string = (char *) malloc(length * sizeof(char));
+						sprintf(append_string, "%" PRId64, long_);
+						break;
+					case	FLOAT:;
+						u4 float_bits = popOperand(thread->jvm_stack);
+						bool	isValidFloat = true;
+						switch(float_bits){
+							case	0x7f800000:
+								append_string = (char *) malloc(3 * sizeof(char));
+								sprintf(append_string, "+∞");
+								isValidFloat = false;
+								break;
+							case	0xff800000:
+								append_string = (char *) malloc(3 * sizeof(char));
+								sprintf(append_string, "-∞");
+								isValidFloat = false;
+								break;
+							default:
+								if((float_bits >= 0x7f800001 && float_bits <= 0x7fffffff) ||
+									(float_bits >= 0xff800001 && float_bits <= 0xffffffff)){
+									append_string = (char *) malloc(4 * sizeof(char));
+									sprintf(append_string, "NaN");
+									isValidFloat = false;
+								}
+								
+						}
+						if(isValidFloat){
+							s4 s = ((float_bits >> 31) == 0) ? 1 : -1;
+							s4 e = ((float_bits >> 23) & 0xff);
+							s4 m = (e == 0) ?
+								(float_bits & 0x7fffff) << 1 :
+								(float_bits & 0x7fffff) | 0x800000;
+							append_string = (char *) malloc(13 * sizeof(char));
+							sprintf(append_string, "%E", (float) s * m * pow(2,e - 150));
+						}
+						break;
+					case	DOUBLE:;
+						u4	double_low_bytes = popOperand(thread->jvm_stack);
+						u4	double_high_bytes = popOperand(thread->jvm_stack);
+						u8	double_bits = ((u8) double_high_bytes << 32) | double_low_bytes;
+						
+						bool	isValidDouble = true;
+						switch(double_bits){
+							case	0x7ff0000000000000L:
+								append_string = (char *) malloc(3 * sizeof(char));
+								sprintf(append_string, "+∞");
+								isValidDouble = false;
+								break;
+							case	0xfff0000000000000L:
+								append_string = (char *) malloc(3 * sizeof(char));
+								sprintf(append_string, "-∞");
+								isValidDouble = false;
+								break;
+							default:
+								if((double_bits >= 0x7ff0000000000001L && double_bits <= 0x7ffffffffffffL) ||
+									(double_bits >= 0xfff0000000000001L && double_bits <= 0x7ffffffffffffL)){
+									append_string = (char *) malloc(4 * sizeof(char));
+									sprintf(append_string, "NaN");
+									isValidDouble = false;
+								}
+
+						}
+						if(isValidDouble){
+							s4 s = ((double_bits >> 63) == 0) ? 1 : -1;
+							s4 e = ((double_bits >> 52) & 0x7ffL);
+							s8 m = (e == 0) ?
+								(double_bits & 0xfffffffffffffL) << 1 :
+								(double_bits & 0xfffffffffffffL) | 0x10000000000000L;
+							append_string = (char *) malloc(14 * sizeof(char));
+							sprintf(append_string, "%E", (double) s * m * pow(2,e - 1075));
+						}
+						break;
+					case	REF_INST:
+						append_string = (char *) popOperand(thread->jvm_stack);
 						break;
 				}
-				break;
+				OBJECT * string_buffer = (OBJECT *) popOperand(thread->jvm_stack);
+				string_buffer = (OBJECT *) realloc(string_buffer, strlen(append_string) + strlen((char *) string_buffer) + 1);
+				strcat((char *) string_buffer, append_string);
+				pushOperand((u4) string_buffer, thread->jvm_stack);
+				printf("string_buffer:%s", (char *) string_buffer);
+			}
+			else if(!strcmp(method_name, "toString")){
+				is_toString = true;
+			}
+		
 		}
-		i++;
 	}
-
+	u2	nargs;
+	u4	* args; 
+	if(!is_print && !is_append && !is_toString){
+		// desempilha operandos e coloca no vetor de variaveis locais;
+		nargs = 0;
+		args = (u4 *) malloc(invoked_method->locals_size * sizeof(u4));
+		u2	i = 1;
+		while(method_descriptor[i] != ')'){
+			switch(method_descriptor[i]){
+				case	REF_INST:
+					while(method_descriptor[i] != ';'){
+						i++;
+					}
+				case	BOOLEAN:
+				case	BYTE:
+				case	CHAR:
+				case	FLOAT:
+				case	INT:
+				case	SHORT:
+					args[nargs] = popOperand(thread->jvm_stack);
+					nargs++;
+					break;
+				case	LONG:
+				case	DOUBLE:
+					args[nargs] = popOperand(thread->jvm_stack);
+					nargs++;
+					args[nargs] = popOperand(thread->jvm_stack);
+					nargs++;
+					break;
+				case	REF_ARRAY:
+					while(method_descriptor[i] == '['){
+						i++;
+					}
+					switch(method_descriptor[i]){
+						case	REF_INST:
+							while(method_descriptor[i] != ';'){
+								i++;
+							}
+						case	BOOLEAN:
+						case	BYTE:
+						case	CHAR:
+						case	FLOAT:
+						case	INT:
+						case	SHORT:
+						case	LONG:
+						case	DOUBLE:
+							args[nargs] = popOperand(thread->jvm_stack);
+							nargs++;
+							break;
+					}
+					break;
+			}
+			i++;
+		}	
+	}
+	
 	switch(* thread->program_counter){// PARA TESTAR O HELLOWORLD
 		case	invokevirtual:
-			if(is_print){
+			if(is_print || is_append){
 				break;
 			}
 			break;
@@ -2453,56 +2618,6 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("IllegalAccessError");
 				exit(EXIT_FAILURE);
 			}
-			u2	nargs = 0;
-			u4	* args = (u4 *) malloc(invoked_method->locals_size * sizeof(u4));
-			u2	i = 1;
-			while(method_descriptor[i] != ')'){
-				switch(method_descriptor[i]){
-					case	REF_INST:
-						while(method_descriptor[i] != ';'){
-							i++;
-						}
-					case	BOOLEAN:
-					case	BYTE:
-					case	CHAR:
-					case	FLOAT:
-					case	INT:
-					case	SHORT:
-						args[nargs] = popOperand(thread->jvm_stack);
-						nargs++;
-						break;
-					case	LONG:
-					case	DOUBLE:
-						args[nargs] = popOperand(thread->jvm_stack);
-						nargs++;
-						args[nargs] = popOperand(thread->jvm_stack);
-						nargs++;
-						break;
-					case	REF_ARRAY:
-						while(method_descriptor[i] == '['){
-							i++;
-						}
-						switch(method_descriptor[i]){
-							case	REF_INST:
-								while(method_descriptor[i] != ';'){
-									i++;
-								}
-							case	BOOLEAN:
-							case	BYTE:
-							case	CHAR:
-							case	FLOAT:
-							case	INT:
-							case	SHORT:
-							case	LONG:
-							case	DOUBLE:
-								args[nargs] = popOperand(thread->jvm_stack);
-								nargs++;
-								break;
-						}
-						break;
-				}
-				i++;
-			}
 			backupPC = thread->program_counter;
 			executeMethod(method_name, method_descriptor, method_class, jvm, thread, NULL, nargs, args);
 			thread->program_counter = backupPC;
@@ -2524,7 +2639,7 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			u1	indexbyte1 = * (thread->program_counter + 1);
 			u1	indexbyte2 = * (thread->program_counter + 2);
 			u2	index = (indexbyte1 << 8) | indexbyte2;
-			
+			printf("\t%" PRIu16, index);
 			cp_info	* cp =(thread->jvm_stack)->current_constant_pool;
 			cp_info	* cp_class = cp + index - 1;
 			
@@ -2534,13 +2649,26 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			}
 			
 			cp_info	* cp_class_name = cp + cp_class->u.Class.name_index - 1;
+			char	* class_name = cp_class_name->u.Utf8.bytes;
+			class_name[cp_class_name->u.Utf8.length] = '\0';
+			
+			printf("\t<%s>\n", class_name);
+			
+			OBJECT	*	newObject;
+			if(!strcmp(class_name, "java/lang/StringBuffer")){
+				char * string = (char *) malloc(sizeof(char));
+				string[0] = '\0';
+				newObject = (OBJECT *)  string;
+				pushOperand((u4) newObject, thread->jvm_stack);
+				thread->program_counter += 3;
+				return;
+			}
 			
 			// CONTROLE DE ACESSO
 			u1	* backupPC = thread->program_counter;
 			CLASS_DATA	* object_class = getClass(cp_class_name, jvm);
 			if(!object_class){// se a classe do objeto não foi carregada
-				char	* class_name = cp_class_name->u.Utf8.bytes;
-				class_name[cp_class_name->u.Utf8.length] = '\0';
+				
 /*				puts("");*/
 		
 				char	* string = malloc((strlen(class_name) + 7) * sizeof(CHAR));
@@ -2569,11 +2697,11 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("InstantiationError: Criação de objeto de interface ou class abstrata");
 			}
 			
-			OBJECT	*	newObject = (OBJECT *) malloc(sizeof(OBJECT));
+			newObject = (OBJECT *) malloc(sizeof(OBJECT));
 			newObject->class_data_reference = object_class;
 			newObject->prox = (jvm->heap)->objects;
 			(jvm->heap)->objects = newObject;
-			
+
 			// CRIA INSTANCE_VARIABLES
 			if(!(object_class->classfile)->fields_count){
 				newObject->instance_variables = NULL;
@@ -2610,7 +2738,7 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 							(var->value).u.Long.high_bytes = 0;
 							(var->value).u.Long.low_bytes = 0;
 							break;
-						case	REF_INST:
+						case	REF_INST:;
 							(var->value).u.InstanceReference.reference = NULL;
 							break;
 						case	SHORT:
@@ -2635,9 +2763,7 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*			}*/
 				}
 			}
-			// coloca novo objeto no heap
-			newObject->prox = (jvm->heap)->objects;
-			(jvm->heap)->objects = newObject;
+			
 			
 			// coloca referencia do objeto na pilha
 			pushOperand((u4) newObject, thread->jvm_stack);
