@@ -698,7 +698,7 @@ void	handleStack(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			pushOperand(value2, thread->jvm_stack);
 			break;
 	}
-	thread->program_counter;
+	thread->program_counter++;
 }
 
 /*	INSTRUÇÕES ARITMETICAS	*/
@@ -1258,7 +1258,7 @@ void	Tushr(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	int32_t operand1, operand2;
 	int64_t auxiliar1, auxiliar2;
 	u4 auxU4, aux2U4;
- 
+
 	switch(*thread->program_counter) {
 		case iushr:
 			operand2 = (int32_t) popOperand(thread->jvm_stack);
