@@ -2795,6 +2795,27 @@ void	wide_(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	ifNull(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ifnull*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ifnonnull*/
+    u1	branchbyte1 = * (thread->program_counter + 1);
+	u1	branchbyte2 = * (thread->program_counter + 2);
+	s2	branch = (branchbyte1 << 8) | branchbyte2;
+
+    s4 value = (s4) popOperand(thread->jvm_stack);
+	switch(* thread->program_counter){
+		case	ifnull:
+            if(value == 0){
+                thread->program_counter += branch;
+            }else{
+                thread->program_counter += 3;
+            }
+			break;
+        case	ifnonnull:
+            if(value != 0){
+                thread->program_counter += branch;
+            }else{
+                thread->program_counter += 3;
+            }
+			break;
+	}
 }
 
 // widejump	0xC8 a 0xC9
@@ -2802,6 +2823,22 @@ void	ifNull(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	widejump(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.goto_w*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.jsr_w*/
+    u1	branchbyte1 = * (thread->program_counter + 1);
+	u1	branchbyte2 = * (thread->program_counter + 2);
+	u1	branchbyte3 = * (thread->program_counter + 3);
+	u1	branchbyte4 = * (thread->program_counter + 4);
+
+	s4	branch = (s4)(((branchbyte1 & 0xFF)<<24) | ((branchbyte2 & 0xFF)<<16) | ((branchbyte3 & 0xFF)<<8) | (branchbyte1 & 0xFF));
+
+	switch(* thread->program_counter){
+		case	goto_w:
+            thread->program_counter += branch;
+			break;
+        case	jsr_w:
+            pushOperand((u4)(thread->program_counter += 5), thread->jvm_stack);
+            thread->program_counter += branch;
+			break;
+	}
 }
 
 // breakpoint	0xCA
