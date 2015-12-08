@@ -578,9 +578,9 @@ void	pushOperand(u4 word, FRAME * frame){
 	aux->value = word;
 	aux->prox = frame->operand_stack;
 	frame->operand_stack = aux;
-/*	char	* char_ = (char *) word;*/
-/*	printf("push:\thexa = 0x%04" PRIX32 "\tunsigned = %" PRIu32 "\tsigned = %" PRIu32 "\n",*/
-/*		word, word, word);*/
+	char	* char_ = (char *) word;
+	printf("\tpush:\thexa = 0x%04" PRIX32 "\tunsigned = %" PRIu32 "\tsigned = %" PRIu32 "\n",
+		word, word, word);
 }
 
 u4	popOperand(FRAME * frame){
@@ -589,9 +589,9 @@ u4	popOperand(FRAME * frame){
 		frame->operand_stack = aux->prox;
 		u4	word = aux->value;
 		free(aux);
-/*		char	* char_ = (char *) word;*/
-/*		printf("pop:\thexa = 0x%04" PRIX32 "\tunsigned = %" PRIu32 "\tsigned = %" PRIu32 "\n",*/
-/*			word, word, word);*/
+		char	* char_ = (char *) word;
+		printf("\tpop:\thexa = 0x%04" PRIX32 "\tunsigned = %" PRIu32 "\tsigned = %" PRIu32 "\n",
+			word, word, word);
 		return	word;
 	}
 	else{

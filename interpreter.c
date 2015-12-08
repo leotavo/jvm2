@@ -1470,6 +1470,10 @@ void	Txor(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 //	Incremento de variável local
 void	Tinc(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.iinc*/
+	u1	index = (u1) *(thread->program_counter + 1);
+	s1	const_ = (s1) *(thread->program_counter + 2);
+	printf("\t%" PRIu8 "\tby\t%" PRId8, index, const_);
+	(thread->jvm_stack)->local_variables[index] += (s4) const_;
 	thread->program_counter += 3;
 }
 
@@ -1914,42 +1918,42 @@ void	if_icmOP(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			if(value1 == value2){
 				thread->program_counter += branch;
 			}else{
-                thread->program_counter += 3;
+                		thread->program_counter += 3;
 			}
 			break;
-        case	if_icmpne:
+		case	if_icmpne:
 			if(value1 != value2){
 				thread->program_counter += branch;
 			}else{
-                thread->program_counter += 3;
+                		thread->program_counter += 3;
 			}
 			break;
-        case	if_icmplt:
+		case	if_icmplt:
 			if(value1 < value2){
 				thread->program_counter += branch;
 			}else{
-                thread->program_counter += 3;
+                		thread->program_counter += 3;
 			}
 			break;
 		case	if_icmpge:
 			if(value1 >= value2){
 				thread->program_counter += branch;
 			}else{
-                thread->program_counter += 3;
+                		thread->program_counter += 3;
 			}
 			break;
         case	if_icmpgt:
 			if(value1 > value2){
 				thread->program_counter += branch;
 			}else{
-                thread->program_counter += 3;
+                		thread->program_counter += 3;
 			}
 			break;
         case	if_icmple:
 			if(value1 <= value2){
 				thread->program_counter += branch;
 			}else{
-                thread->program_counter += 3;
+                		thread->program_counter += 3;
 			}
 			break;
 	}
@@ -1995,31 +1999,30 @@ void	jump(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.goto*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.jsr*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ret*/
-    u1	branchbyte1 = * (thread->program_counter + 1);
+	u1	branchbyte1 = * (thread->program_counter + 1);
 	u1	branchbyte2 = * (thread->program_counter + 2);
 	s2	branch = (branchbyte1 << 8) | branchbyte2;
 
 	switch(* thread->program_counter){
 		case	goto_:
-            thread->program_counter += branch;
+			printf("\t%" PRIu16 "\t(%+" PRId16 ")", thread->program_counter - method->bytecodes + branch, branch);
+			thread->program_counter += branch;
 			break;
-        case	jsr:
-            pushOperand((u4)(thread->program_counter += 3), thread->jvm_stack);
-            thread->program_counter += branch;
+		case	jsr:
+			pushOperand((u4)(thread->program_counter += 3), thread->jvm_stack);
+			thread->program_counter += branch;
 			break;
-        case	ret:{
-            thread->program_counter++;
-            u2 index = (u2)*(thread->program_counter);
+		case	ret:
+			thread->program_counter++;
+			u2 index = (u2)*(thread->program_counter);
+			if (isWide == 1){
+				thread->program_counter++;
+				index = (index << 8) | *(thread->program_counter);
+				isWide = 0;
+			}
 
-            if (isWide == 1){
-                thread->program_counter++;
-                index = (index << 8) | *(thread->program_counter);
-                isWide = 0;
-            }
-
-            *thread->program_counter = (thread->jvm_stack)->local_variables[index];
+			*thread->program_counter = (thread->jvm_stack)->local_variables[index];
 			break;
-        }
 	}
 }
 
@@ -2100,7 +2103,7 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u1	indexbyte2 = *(thread->program_counter + 2);
 	u2	index = (indexbyte1 << 8) | indexbyte2;
 	
-	#ifdef	DEBUG
+	#ifdef	DEBUG_INSTRUCAO
 	printf("\t#%" PRIu16, index);
 	#endif
 	
@@ -2340,7 +2343,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u1	indexbyte2 = *(thread->program_counter + 2);
 	u2	index = (indexbyte1 << 8) | indexbyte2;
 	
-	#ifdef	DEBUG
+	#ifdef	DEBUG_INSTRUCAO
 	printf("\t#%" PRIu16, index);
 	#endif
 	
@@ -2732,6 +2735,8 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		nargs = 0;
 		args = (u4 *) malloc(invoked_method->locals_size * sizeof(u4));
 		u2	i = 1;
+		u2	locals_size = invoked_method->locals_size;
+		
 		while(method_descriptor[i] != ')'){
 			switch(method_descriptor[i]){
 				case	REF_INST:
@@ -2744,14 +2749,14 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				case	FLOAT:
 				case	INT:
 				case	SHORT:
-					args[nargs] = popOperand(thread->jvm_stack);
+					args[locals_size - nargs + 1] = popOperand(thread->jvm_stack);
 					nargs++;
 					break;
 				case	LONG:
 				case	DOUBLE:
-					args[nargs] = popOperand(thread->jvm_stack);
+					args[locals_size - nargs + 1] = popOperand(thread->jvm_stack);
 					nargs++;
-					args[nargs] = popOperand(thread->jvm_stack);
+					args[locals_size - nargs + 1] = popOperand(thread->jvm_stack);
 					nargs++;
 					break;
 				case	REF_ARRAY:
@@ -2771,7 +2776,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						case	SHORT:
 						case	LONG:
 						case	DOUBLE:
-							args[nargs] = popOperand(thread->jvm_stack);
+							args[locals_size - nargs + 1] = popOperand(thread->jvm_stack);
 							nargs++;
 							break;
 					}
@@ -2850,7 +2855,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 							exit(EXIT_FAILURE);
 						}
 						executeMethod(method_name, method_descriptor, super_class, 
-								jvm, thread, NULL, nargs, args);
+								jvm, thread, objectref, nargs, args);
 						thread->program_counter = backupPC;
 						findMethod = true;
 					}
@@ -2943,7 +2948,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						
 							backupPC = thread->program_counter;
 							executeMethod(method_name, method_descriptor, super_class,
-									jvm, thread, NULL, nargs, args);
+									jvm, thread, objectref, nargs, args);
 							thread->program_counter = backupPC;
 							findMethod = true;
 						}
@@ -3042,7 +3047,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						}
 						
 						executeMethod(method_name, method_descriptor, super_class, 
-								jvm, thread, NULL, nargs, args);
+								jvm, thread, objectref, nargs, args);
 						thread->program_counter = backupPC;
 						findMethod = true;
 					}
@@ -3222,7 +3227,52 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		case	anewarray:
 			thread->program_counter += 3;
 			break;
-		case	newarray:
+		case	newarray:;
+			s4	count = popOperand(thread->jvm_stack);
+			
+			if(count < 0){
+				puts("NegativaArraySizeException");
+				exit(EXIT_FAILURE);
+			}
+			ARRAY *	new_array = (ARRAY *) malloc(sizeof(ARRAY));
+			new_array->atype = * (thread->program_counter + 1);
+			new_array->count = count;
+			printf("\t%" PRIu32, new_array->atype);
+			switch(new_array->atype){
+				case	T_BOOLEAN:
+					printf("\t(boolean)");
+					break;
+				case	T_BYTE:
+					printf("\t(byte)");
+					break;
+				case	T_CHAR:
+					printf("\t(char)");
+					break;
+				case	T_DOUBLE:
+					printf("\t(double)");
+					break;
+				case	T_FLOAT:
+					printf("\t(float)");
+					break;
+				case	T_INT:
+					printf("\t(int)");
+					break;
+				case	T_LONG:
+					printf("\t(long)");
+					break;
+				case	T_SHORT:
+					printf("\t(short)");
+					break;
+				default:
+					puts("\nUnknown array type");
+					exit(EXIT_FAILURE);
+			}
+			new_array->entry = (VALUE *) malloc(count * sizeof(VALUE));
+			new_array->prox = (jvm->heap)->arrays;
+			(jvm->heap)->arrays = new_array;
+			
+			pushOperand((u4) new_array, thread->jvm_stack);
+			
 			thread->program_counter += 2;
 			break;
 		case	arraylength:
