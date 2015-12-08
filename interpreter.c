@@ -9,7 +9,7 @@
 #include	<math.h>
 #include	<wchar.h>
 
-
+#define DEBUG
 /*	ARQUIVOS DE TESTE
 nop_
 	nao definido
@@ -839,6 +839,7 @@ void	Tadd(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			}
 			break;
 	}
+	thread->program_counter++;
 }
 
 // Tsub		0x64 a 0x67
