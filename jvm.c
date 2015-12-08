@@ -532,7 +532,7 @@ void	executeMethod(char * method_name, char * method_descriptor, CLASS_DATA * cd
 			// CHAMA O INTERPRETADOR
 			interpreter(method, thread, jvm);
 			
-			#ifdef	DEBUG_METODO_
+			#ifdef	DEBUG_METODO
 			puts("=======================");
 			printf("End\t");
 			PrintConstantUtf8(cd->class_name, stdout);
