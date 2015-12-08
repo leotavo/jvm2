@@ -1,11 +1,4 @@
-﻿Testes:
 
-AImpl.java = OK
-new, dup, invokespecial, invokeinterface, astore_2, astore_1, aload_2, lconst_1, return, getstatic, ldc.
-
-C1.java = não trata Try/Catch
-ldc2_w, putstatic, return, invokespecial, astore_1, aload_1, invokevirtual, pop, pop2;
-aload_0, bipush, putfield, new, dup, goto, astore_2, istore_3, irreturn, lcd, freturn, lreturn, dreturn, areturn, 
 
 INTERPRETER - SITUAÇÃO:
 
@@ -15,11 +8,9 @@ Tadd = falta dadd (MATHEUS E LEO)
 Tsub = falta dsub (MATHEUS E LEO)
 Tmul = falta dmul (MATHEUS E LEO)
 Tdiv = falta ddiv (MATHEUS E LEO)
-Tinc = NÃO IMPLEMENTADA (MATHEUS)
 switch = NÃO IMPLEMENTADA
-Treturn = OK
 accessField = falta getfield (LEO)
-invoke = falta invokedynamic
+invoke = falta invokedynamic, corrigir bugs invokevirtual (parametros)
 handleObject = falta newarray, anewarray, arraylength, multianewarray (LEO)
 athrow = NÃO IMPLEMENTADA (opcional)
 properties = NÃO IMPLEMENTADA
@@ -66,6 +57,10 @@ ldc_ = OK (DANIEL)
 Tload = OK (DANIEL)
 Tstore = OK (DANIEL)
 nonDefined = OK
+Tinc = OK (LEO)
+Treturn = OK (LEO)
+
+
 
 
 
