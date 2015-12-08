@@ -1560,6 +1560,10 @@ void	Txor(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 //	Incremento de variável local
 void	Tinc(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.iinc*/
+	u1	index = (u1) *(thread->program_counter + 1);
+	s1	const_ = (s1) *(thread->program_counter + 2);
+	printf("\t%" PRIu8 "\tby\t%" PRId8, index, const_);
+	(thread->jvm_stack)->local_variables[index] += (s4) const_;
 	thread->program_counter += 3;
 }
 
@@ -2251,7 +2255,7 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u1	indexbyte2 = *(thread->program_counter + 2);
 	u2	index = (indexbyte1 << 8) | indexbyte2;
 
-	#ifdef	DEBUG
+	#ifdef	DEBUG_INSTRUCAO
 	printf("\t#%" PRIu16, index);
 	#endif
 
@@ -2490,11 +2494,11 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u1	indexbyte1 = *(thread->program_counter + 1);
 	u1	indexbyte2 = *(thread->program_counter + 2);
 	u2	index = (indexbyte1 << 8) | indexbyte2;
-
-	#ifdef	DEBUG
+	
+	#ifdef	DEBUG_INSTRUCAO
 	printf("\t#%" PRIu16, index);
 	#endif
-
+	
 /*	https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-5.html#jvms-5.4.3.3*/
 	// RESOLUÇÃO DO MÈTODO
 
@@ -2541,7 +2545,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		classLinking(method_class, jvm);
 		classInitialization(method_class, jvm, thread);
 		thread->program_counter = backupPC;
-
+		
 		#ifdef	DEBUG_METODO
 		puts("=======================");
 		printf("Resume\t");
@@ -2619,7 +2623,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						break;
 					case	CHAR:; // BUG PARA UNICODE CHAR
 						u2	char_ = popOperand(thread->jvm_stack);
-
+					
 						char * utf8_char = (char *) &char_;
 						utf8_char[2] = '\0';
 						printf("%s", utf8_char);
@@ -2648,7 +2652,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 									printf("NaN");
 									isValidFloat = false;
 								}
-
+								
 						}
 						if(isValidFloat){
 							s4 s = ((float_bits >> 31) == 0) ? 1 : -1;
@@ -2663,7 +2667,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						u4	long_low_bytes = popOperand(thread->jvm_stack);
 						u4	long_high_bytes = popOperand(thread->jvm_stack);
 						s8	long_ = ((u8) long_high_bytes << 32) | long_low_bytes;
-
+	
 						printf("%" PRId64, long_);
 						break;
 					case	DOUBLE:;
@@ -2714,7 +2718,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				switch(method_descriptor[1]){
 					case	BOOLEAN:;
 						u1	boolean = (u1) popOperand(thread->jvm_stack);
-
+						
 						if(boolean){
 							append_string = (char *) malloc(5 * sizeof(char));
 							append_string[0] = '\0';
@@ -2741,13 +2745,13 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						break;
 					case	CHAR:;
 						u2	char_ = (u2) popOperand(thread->jvm_stack);
-
+					
 						append_string = (char *) malloc(2 * sizeof(char));
 						sprintf(append_string, "%c", (char) char_);
 						break;
 					case	SHORT:;
 						s2	short_ = (s2) popOperand(thread->jvm_stack);
-
+						
 						if(byte < 0){
 							length = -(short_/10) + 2;
 							length++;
@@ -2760,7 +2764,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						break;
 					case	INT:;
 						s4	int_ = (s4) popOperand(thread->jvm_stack);
-
+						
 						if(byte < 0){
 							length = -(int_/10) + 2;
 							length++;
@@ -2768,7 +2772,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						else{
 							length = int_/10 + 2;
 						}
-
+						
 						append_string = (char *) malloc(length * sizeof(char));
 						sprintf(append_string, "%" PRId32, int_);
 						break;
@@ -2776,7 +2780,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						u4	long_low_bytes = popOperand(thread->jvm_stack);
 						u4	long_high_bytes = popOperand(thread->jvm_stack);
 						s8	long_ = ((u8) long_high_bytes << 32) | long_low_bytes;
-
+						
 						if(byte < 0){
 							length = -(long_/10) + 2;
 							length++;
@@ -2784,7 +2788,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						else{
 							length = long_/10 + 2;
 						}
-
+						
 						append_string = (char *) malloc(length * sizeof(char));
 						sprintf(append_string, "%" PRId64, long_);
 						break;
@@ -2809,7 +2813,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 									sprintf(append_string, "NaN");
 									isValidFloat = false;
 								}
-
+								
 						}
 						if(isValidFloat){
 							s4 s = ((float_bits >> 31) == 0) ? 1 : -1;
@@ -2825,7 +2829,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						u4	double_low_bytes = popOperand(thread->jvm_stack);
 						u4	double_high_bytes = popOperand(thread->jvm_stack);
 						u8	double_bits = ((u8) double_high_bytes << 32) | double_low_bytes;
-
+						
 						bool	isValidDouble = true;
 						switch(double_bits){
 							case	0x7ff0000000000000L:
@@ -2865,7 +2869,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				string_buffer = (OBJECT *) realloc(string_buffer, strlen(append_string) + strlen((char *) string_buffer) + 1);
 				strcat((char *) string_buffer, append_string);
 				pushOperand((u4) string_buffer, thread->jvm_stack);
-
+				
 				#ifdef	DEBUG
 				printf("string_buffer:%s", (char *) string_buffer);
 				#endif
@@ -2873,16 +2877,18 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			else if(!strcmp(method_name, "toString")){
 				is_toString = true;
 			}
-
+		
 		}
 	}
 	u2	nargs;
-	u4	* args;
+	u4	* args; 
 	if(!is_print && !is_append && !is_toString){
 		// desempilha operandos e coloca no vetor de variaveis locais;
 		nargs = 0;
 		args = (u4 *) malloc(invoked_method->locals_size * sizeof(u4));
 		u2	i = 1;
+		u2	locals_size = invoked_method->locals_size;
+		
 		while(method_descriptor[i] != ')'){
 			switch(method_descriptor[i]){
 				case	REF_INST:
@@ -2895,14 +2901,14 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				case	FLOAT:
 				case	INT:
 				case	SHORT:
-					args[nargs] = popOperand(thread->jvm_stack);
+					args[locals_size - nargs + 1] = popOperand(thread->jvm_stack);
 					nargs++;
 					break;
 				case	LONG:
 				case	DOUBLE:
-					args[nargs] = popOperand(thread->jvm_stack);
+					args[locals_size - nargs + 1] = popOperand(thread->jvm_stack);
 					nargs++;
-					args[nargs] = popOperand(thread->jvm_stack);
+					args[locals_size - nargs + 1] = popOperand(thread->jvm_stack);
 					nargs++;
 					break;
 				case	REF_ARRAY:
@@ -2922,14 +2928,14 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						case	SHORT:
 						case	LONG:
 						case	DOUBLE:
-							args[nargs] = popOperand(thread->jvm_stack);
+							args[locals_size - nargs + 1] = popOperand(thread->jvm_stack);
 							nargs++;
 							break;
 					}
 					break;
 			}
 			i++;
-		}
+		}	
 	}
 	OBJECT	* objectref;
 	CLASS_DATA	* super_class;
@@ -2952,7 +2958,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("IncompatibleClassChangeError");
 				exit(EXIT_FAILURE);
 			}
-
+			
 			CLASS_DATA	* class_objectref = objectref->class_data_reference;
 			if((invoked_method->modifiers & ACC_PROTECTED)){
 				CLASS_DATA	* super_class = getSuperClass((method->class_data)->classfile, jvm);
@@ -2964,7 +2970,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					else{
 						super_class =  getSuperClass(super_class->classfile, jvm);
 					}
-				}
+				}				
 				if(isSuperClass && ((invoked_method->class_data)->classloader_reference !=
 							 (method->class_data)->classloader_reference )){
 					if(class_objectref != method->class_data){
@@ -2995,13 +3001,13 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 							puts("UnsatisfiedLinkError");
 							exit(EXIT_FAILURE);
 						}
-
+			
 						if(invoked_method->modifiers & ACC_ABSTRACT){
 							puts("AbstractMethodError: método abstrato");
 							exit(EXIT_FAILURE);
 						}
-						executeMethod(method_name, method_descriptor, super_class,
-								jvm, thread, NULL, nargs, args);
+						executeMethod(method_name, method_descriptor, super_class, 
+								jvm, thread, objectref, nargs, args);
 						thread->program_counter = backupPC;
 						findMethod = true;
 					}
@@ -3091,10 +3097,10 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 								puts("UnsatisfiedLinkError");
 								exit(EXIT_FAILURE);
 							}
-
+						
 							backupPC = thread->program_counter;
 							executeMethod(method_name, method_descriptor, super_class,
-									jvm, thread, NULL, nargs, args);
+									jvm, thread, objectref, nargs, args);
 							thread->program_counter = backupPC;
 							findMethod = true;
 						}
@@ -3129,12 +3135,12 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("IllegalAccessError");
 				exit(EXIT_FAILURE);
 			}
-
+			
 			if(invoked_method->modifiers & ACC_NATIVE){
 				puts("UnsatisfiedLinkError");
 				exit(EXIT_FAILURE);
 			}
-
+			
 			backupPC = thread->program_counter;
 			executeMethod(method_name, method_descriptor, method_class, jvm, thread, NULL, nargs, args);
 			thread->program_counter = backupPC;
@@ -3149,7 +3155,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("NullPointerException");
 				exit(EXIT_FAILURE);
 			}
-
+			
 			if((!strcmp(method_name, "<init>")) || (!strcmp(method_name, "<clinit>"))){
 				puts("InvokeInterfaceInitError");
 				exit(EXIT_FAILURE);
@@ -3159,11 +3165,11 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("InvokeInterfaceError");
 				exit(EXIT_FAILURE);
 			}
-
+			
 			#ifdef	DEBUG
 			printf("\tcount	%" PRIu8, count);
 			#endif
-
+			
 			u4	fourth_operand = * (thread->program_counter + 4);
 			if(fourth_operand){
 				printf("\n%" PRIu32, fourth_operand);
@@ -3171,7 +3177,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				exit(EXIT_FAILURE);
 			}
 			class_objectref = objectref->class_data_reference;
-
+			
 			findMethod = false;
 			super_class = class_objectref;
 			while(super_class && !findMethod){
@@ -3186,14 +3192,14 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 							puts("UnsatisfiedLinkError");
 							exit(EXIT_FAILURE);
 						}
-
+						
 						if(!invoked_method->modifiers & ACC_PUBLIC){
 							puts(" IllegalAccessError");
 							exit(EXIT_FAILURE);
 						}
-
-						executeMethod(method_name, method_descriptor, super_class,
-								jvm, thread, NULL, nargs, args);
+						
+						executeMethod(method_name, method_descriptor, super_class, 
+								jvm, thread, objectref, nargs, args);
 						thread->program_counter = backupPC;
 						findMethod = true;
 					}
@@ -3216,6 +3222,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			break;
 	}
 	thread->program_counter += 3;
+
 }
 
 // handleObject	0xBB a 0xBE; 0xC5
@@ -3374,6 +3381,51 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			thread->program_counter += 3;
 			break;
 		case	newarray:
+			s4	count = popOperand(thread->jvm_stack);
+			
+			if(count < 0){
+				puts("NegativaArraySizeException");
+				exit(EXIT_FAILURE);
+			}
+			ARRAY *	new_array = (ARRAY *) malloc(sizeof(ARRAY));
+			new_array->atype = * (thread->program_counter + 1);
+			new_array->count = count;
+			printf("\t%" PRIu32, new_array->atype);
+			switch(new_array->atype){
+				case	T_BOOLEAN:
+					printf("\t(boolean)");
+					break;
+				case	T_BYTE:
+					printf("\t(byte)");
+					break;
+				case	T_CHAR:
+					printf("\t(char)");
+					break;
+				case	T_DOUBLE:
+					printf("\t(double)");
+					break;
+				case	T_FLOAT:
+					printf("\t(float)");
+					break;
+				case	T_INT:
+					printf("\t(int)");
+					break;
+				case	T_LONG:
+					printf("\t(long)");
+					break;
+				case	T_SHORT:
+					printf("\t(short)");
+					break;
+				default:
+					puts("\nUnknown array type");
+					exit(EXIT_FAILURE);
+			}
+			new_array->entry = (VALUE *) malloc(count * sizeof(VALUE));
+			new_array->prox = (jvm->heap)->arrays;
+			(jvm->heap)->arrays = new_array;
+			
+			pushOperand((u4) new_array, thread->jvm_stack);
+			
 			thread->program_counter += 2;
 			break;
 		case	arraylength:
