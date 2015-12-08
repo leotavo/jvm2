@@ -25,30 +25,30 @@ typedef struct cp_info{
 		struct{
 			u2	name_index;
 		}Class;
-		
+
 		struct{
 			u2	class_index;
 			u2	name_and_type_index;
 		}Ref;
-		
+
 		struct{
 			u2	name_index;
 			u2	descriptor_index;
 		}NameAndType;
-		
+
 		struct{
-			u2	length;	
+			u2	length;
 			u1*	bytes;
 		}Utf8;
-				
+
 		struct{
 			u2	string_index;
 		}String;
-		
+
 		struct{
 			u4	bytes;
 		}Integer_Float;
-				
+
 		struct{
 			u4 	high_bytes;
 			u4 	low_bytes;
@@ -61,7 +61,7 @@ typedef struct exception_table_type{
 	u2	start_pc;
 	u2	end_pc;
 	u2	handler_pc;
-	u2	catch_type; 
+	u2	catch_type;
 }exception_table_type;
 
 typedef struct classes_type{
@@ -73,10 +73,10 @@ typedef struct classes_type{
 
 typedef struct line_number_table_type{
 	u2	start_pc;
-	u2	line_number; 
+	u2	line_number;
 }line_number_table_type;
 
-typedef struct local_variable_table_type{	
+typedef struct local_variable_table_type{
 	u2	start_pc;
 	u2	length;
 	u2	name_index;
@@ -92,7 +92,7 @@ typedef struct attribute_info{
 		struct{
 			u2	constantvalue_index;
 		}ConstantValue;
-		
+
 		struct{
 			u2		max_stack;
 			u2 		max_locals;
@@ -103,35 +103,35 @@ typedef struct attribute_info{
 			u2		attributes_count;
 			struct attribute_info*	attributes;
 		}Code;
-		
+
 		struct{
-		
+
 		}Deprecated;
-		
+
 		struct{
 			u2		number_of_exceptions;
 			u2*		exception_index_table;
 		}Exceptions;
-				
+
 		struct{
 			u2		number_of_classes;
 			classes_type *	classes;
 		}InnerClasses;
-		
+
 		struct{
 			u2		line_number_table_length;
 			line_number_table_type *	line_number_table;
 		}LineNumberTable;
-				
+
 		struct{
 			u2		local_variable_table_length;
 			local_variable_table_type *	local_variable_table;
 		}LocalVariableTable;
-		
+
 		struct{
-		
+
 		}Synthetic;
-		
+
 		struct{
 			u2		sourcefile_index;
 		}SourceFile;

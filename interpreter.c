@@ -38,22 +38,22 @@ int	isWide = 0;
 //	INTERPRETADOR
 void	interpreter(METHOD_DATA	* method, THREAD * thread, JVM * jvm){
 	thread->program_counter = method->bytecodes;
-	
+
 	#ifdef	DEBUG_INSTRUCAO
 	printf("PC\tOPCODE\n");
 	#endif
-	
+
 	OPERAND		* operand = (thread->jvm_stack)->operand_stack;
-	
-	
+
+
 	while(thread->program_counter < (method->bytecodes + method->code_length)){	// enquanto houver instruções
-	
+
 		#ifdef	DEBUG_INSTRUCAO
 		printf("%" PRIu8 "\t%s", thread->program_counter - method->bytecodes, opcodes[* thread->program_counter]);
 		#endif
-		
+
 		func[* thread->program_counter](method, thread, jvm);
-		
+
 		#ifdef	DEBUG_INSTRUCAO
 		puts("");
 		#endif
@@ -170,11 +170,11 @@ void	Tipush(METHOD_DATA * method, THREAD * thread, JVM * jvm){ // TESTAR NEGATIV
 			s1 aux1;
 			aux1 = (s1) * (thread->program_counter + 1);
 			pushOperand((u4) aux1, thread->jvm_stack);
-			
+
 			#ifdef	DEBUG_INSTRUCAO
 			printf("\t%" PRId8, aux1);
 			#endif
-			
+
 			break;
 		case sipush:;
 			u1 high;
@@ -184,11 +184,11 @@ void	Tipush(METHOD_DATA * method, THREAD * thread, JVM * jvm){ // TESTAR NEGATIV
 			low = * (thread->program_counter + 2);
 			aux2 = (high << 8) | low;
 			pushOperand((u4) aux2, thread->jvm_stack);
-			
+
 			#ifdef	DEBUG
 			printf("\t%" PRId16, aux2);
 			#endif
-			
+
 			thread->program_counter++;
 			break;
 	}
@@ -225,24 +225,24 @@ void	ldc_(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		#ifdef	DEBUG_INSTRUCAO
 		printf("\t#%" PRIu16, index);
 		#endif
-		
+
 		cp = (thread->jvm_stack)->current_constant_pool + index - 1;
 		switch(cp->tag)	{
 			case (CONSTANT_Integer):
-			
+
 				#ifdef	DEBUG
 				printf("\t<%" PRId32 ">", cp->u.Integer_Float.bytes);
 				#endif
-				
+
 			case (CONSTANT_Float):
 				if(cp->tag == CONSTANT_Float){
 					float aux;
 					memcpy(&aux, &(cp->u.Integer_Float.bytes), sizeof(u4));
-					
+
 					#ifdef	DEBUG
 					printf("\t<%E>", aux);
 					#endif
-					
+
 				}
 				*value = cp->u.Integer_Float.bytes;
 				pushOperand(* value, thread->jvm_stack);
@@ -251,26 +251,26 @@ void	ldc_(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				cp_aux = (thread->jvm_stack)->current_constant_pool + cp->u.String.string_index - 1;
 				string = (char *) cp_aux->u.Utf8.bytes;
 				string[cp_aux->u.Utf8.length] = '\0';
-				
+
 				#ifdef	DEBUG
 				printf("\t<%s>", string);
 				#endif
-				
+
 				*value = (u4) string;
 				pushOperand(* value, thread->jvm_stack);
 				break;
 			case (CONSTANT_Long):
-			
+
 				#ifdef	DEBUG
 				printf("\t<%" PRId64 ">", ((s8) cp->u.Long_Double.high_bytes << 32) | cp->u.Long_Double.low_bytes);
 				#endif
-				
+
 			case (CONSTANT_Double):
 				if(cp->tag == CONSTANT_Double){
 					double	aux;
 					u8 auxd = ((u8) cp->u.Long_Double.high_bytes << 32) | cp->u.Long_Double.low_bytes;
 					memcpy(&aux, &auxd, sizeof(double));
-					
+
 					#ifdef	DEBUG
 					printf("\t<%E>", aux);
 					#endif
@@ -325,7 +325,7 @@ void	Tload(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			#ifdef	DEBUG
 			printf("\t%" PRIu16, index);
 			#endif
-			
+
 			*value = (thread->jvm_stack)->local_variables[index];
 			pushOperand(* value, thread->jvm_stack);
 
@@ -1145,6 +1145,96 @@ void	Trem(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lrem*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.frem*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.drem*/
+    switch(*thread->program_counter){
+        case irem:{
+            u4 value1, value2;
+            // get value from operand_stack
+            value2 = popOperand(thread->jvm_stack);
+            value1 =  popOperand(thread->jvm_stack);
+            //push value
+			pushOperand( (value1 % value2), thread->jvm_stack);
+
+			thread->program_counter++;
+			break;
+		}
+		case lrem:{
+			s8 long_value1, long_value2;
+			u4 high, low;
+
+			low = popOperand(thread->jvm_stack);
+			high = popOperand(thread->jvm_stack);
+			long_value2 = (s8) high;
+			long_value2 <<= 32;
+			long_value2 += low;
+
+            low = popOperand(thread->jvm_stack);
+			high = popOperand(thread->jvm_stack);
+			long_value1 = (s8) high;
+			long_value1 <<= 32;
+			long_value1 += low;
+
+			long_value1 = long_value1 % long_value2;
+
+			high = long_value1 >> 32;
+			low = long_value1 & 0xffffffff;
+
+			pushOperand(high, thread->jvm_stack);
+			pushOperand(low, thread->jvm_stack);
+
+			thread->program_counter++;
+			break;
+		}
+		case frem:{
+			float float_value1, float_value2;
+			u4 value;
+
+            value = popOperand(thread->jvm_stack);
+            memcpy(&float_value2, &value, sizeof(u4));
+
+            value = popOperand(thread->jvm_stack);
+            memcpy(&float_value1, &value, sizeof(u4));
+
+            float_value1 = fmodf( float_value1 , float_value2);
+
+            memcpy(&value, &float_value1, sizeof(u4));
+			pushOperand(value, thread->jvm_stack);
+
+            thread->program_counter++;
+            break;
+        }
+        case drem:{
+            u8 value;
+            u4 high, low;
+            double double_value1, double_value2;
+
+			low = popOperand(thread->jvm_stack);
+			high = popOperand(thread->jvm_stack);
+
+            value = (((u8) high) << 32) + low;
+
+            memcpy(&double_value2, &value, sizeof(u8));
+
+            low = popOperand(thread->jvm_stack);
+			high = popOperand(thread->jvm_stack);
+
+            value = (((u8) high) << 32) + low;
+
+            memcpy(&double_value1, &value, sizeof(u8));
+
+            double_value1 = fmod( double_value1 , double_value2 );
+
+            memcpy(&value, &double_value1, sizeof(u8));
+
+			high = value >> 32;
+			low = value & 0xffffffff;
+
+			pushOperand(high, thread->jvm_stack);
+			pushOperand(low, thread->jvm_stack);
+
+			thread->program_counter++;
+			break;
+		}
+	}
 }
 
 /*	INSTRUÇÕES BIT A BIT	*/
@@ -1193,7 +1283,7 @@ void	Tneg(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			u4 value;
 
             value = popOperand(thread->jvm_stack);
-            float_value = (float) value;
+            memcpy(&float_value, &value, sizeof(u4));
 
             float_value = -float_value;
             //copy bits from float_value into value
@@ -1304,7 +1394,7 @@ void	Tushr(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	int32_t operand1, operand2;
 	int64_t auxiliar1, auxiliar2;
 	u4 auxU4, aux2U4;
- 
+
 	switch(*thread->program_counter) {
 		case iushr:
 			operand2 = (int32_t) popOperand(thread->jvm_stack);
@@ -1793,12 +1883,12 @@ void	Tcmp(METHOD_DATA * method, THREAD * thread, JVM * jvm){
     low = popOperand(thread->jvm_stack);
     high = popOperand(thread->jvm_stack);
 
-    value1 = (((u8) high) << 32) + low;
+    value2 = (((u8) high) << 32) + low;
 
     low = popOperand(thread->jvm_stack);
     high = popOperand(thread->jvm_stack);
 
-    value2 = (((u8) high) << 32) + low;
+    value1 = (((u8) high) << 32) + low;
 
 	if ( value1 == value2 ){
         result = 0;
@@ -1809,7 +1899,7 @@ void	Tcmp(METHOD_DATA * method, THREAD * thread, JVM * jvm){
         result = -1;
 	}
 
-	pushOperand(result, thread->jvm_stack);
+	pushOperand((u4)result, thread->jvm_stack);
 
 	thread->program_counter++;
 }
@@ -1821,6 +1911,67 @@ void	TcmpOP(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.fcmpg*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.dcmpl*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.dcmpg*/
+switch(*thread->program_counter)
+    {
+        case fcmpl:
+        case fcmpg:{
+            s4 result;
+            u4 value;
+            float float_value1, float_value2;
+
+            value = popOperand(thread->jvm_stack);
+            memcpy(&float_value2, &value, sizeof(u4));
+
+            value = popOperand(thread->jvm_stack);
+            memcpy(&float_value1, &value, sizeof(u4));
+
+            if ( float_value1 == float_value2 ){
+                result = 0;
+            }else if ( float_value1 > float_value2 ){
+                result = 1;
+            }
+            else{
+                result = -1;
+            }
+
+            pushOperand((u4)result, thread->jvm_stack);
+
+            thread->program_counter++;
+            break;
+        }
+        case dcmpl:
+        case dcmpg:{
+            u8	first_double, second_double;
+			double double_value1, double_value2;
+			s4 result;
+			u4 low, high;
+
+			// desempilha operandos
+			low = popOperand(thread->jvm_stack);
+			high = popOperand(thread->jvm_stack);
+			first_double = ((u8) high << 32) | low;
+            memcpy(&double_value2, &first_double, sizeof(u8));
+
+			low = popOperand(thread->jvm_stack);
+			high = popOperand(thread->jvm_stack);
+			second_double = ((u8) high << 32) | low;
+            memcpy(&double_value1, &first_double, sizeof(u8));
+
+			if ( double_value1 == double_value2 ){
+                result = 0;
+            }else if ( double_value1 > double_value2 ){
+                result = 1;
+            }
+            else{
+                result = -1;
+            }
+
+            pushOperand((u4)result, thread->jvm_stack);
+
+            thread->program_counter++;
+            break;
+        }
+    }
 }
 
 // ifOP		0x99 a 0x9E
@@ -1967,7 +2118,7 @@ void	if_acmOP(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	#ifdef	DEBUG
 	printf("\t%" PRId16 "\t(%+" PRId16 ")", (u2) (thread->program_counter - method->bytecodes) + branch, branch);
 	#endif
-	
+
 	s4	value2	= (s4) popOperand(thread->jvm_stack);
 	s4	value1	= (s4) popOperand(thread->jvm_stack);
 
@@ -2099,11 +2250,11 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u1	indexbyte1 = *(thread->program_counter + 1);
 	u1	indexbyte2 = *(thread->program_counter + 2);
 	u2	index = (indexbyte1 << 8) | indexbyte2;
-	
+
 	#ifdef	DEBUG
 	printf("\t#%" PRIu16, index);
 	#endif
-	
+
 	// RESOLUÇÃO DO FIELD
 		// Nome da classe do field
 	cp_info	* cp_aux = (thread->jvm_stack)->current_constant_pool;
@@ -2131,12 +2282,12 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	#ifdef	DEBUG_INSTRUCAO
 	printf("\t<%s.%s>", class_name, field_name);
 	#endif
-	
+
 	// CONTROLE DE ACESSO
 	u1	* backupPC = thread->program_counter;
 	CLASS_DATA	* field_class = getClass(cp_class_name, jvm);
 	if(!field_class){// se a classe do field não foi carregada
-		
+
 		#ifdef	DEBUG
 		puts("\n");
 		#endif
@@ -2151,7 +2302,7 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		classLinking(field_class, jvm);
 		classInitialization(field_class, jvm, thread);
 		thread->program_counter = backupPC;
-		
+
 		#ifdef	DEBUG_METODO
 		puts("\n=======================");
 		printf("Resume\t");
@@ -2161,7 +2312,7 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		printf(".%s\n", method_name);
 		puts("=======================");
 		#endif
-		
+
 	}
 	else{
 		if(field_class != method->class_data){// Se o Field não for da mesma classe
@@ -2296,7 +2447,7 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					break;
 				case	REF_ARRAY:
 					value.u.ArrayReference.reference = (ARRAY *) popOperand(thread->jvm_stack);
-					
+
 					break;
 				case	DOUBLE:
 					value.u.Double.high_bytes = popOperand(thread->jvm_stack);
@@ -2320,7 +2471,7 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("NoSuchFieldError");
 				exit(EXIT_FAILURE);
 			}
-			var->value = value;	
+			var->value = value;
 			break;
 	}
 
@@ -2339,11 +2490,11 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u1	indexbyte1 = *(thread->program_counter + 1);
 	u1	indexbyte2 = *(thread->program_counter + 2);
 	u2	index = (indexbyte1 << 8) | indexbyte2;
-	
+
 	#ifdef	DEBUG
 	printf("\t#%" PRIu16, index);
 	#endif
-	
+
 /*	https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-5.html#jvms-5.4.3.3*/
 	// RESOLUÇÃO DO MÈTODO
 
@@ -2390,7 +2541,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		classLinking(method_class, jvm);
 		classInitialization(method_class, jvm, thread);
 		thread->program_counter = backupPC;
-		
+
 		#ifdef	DEBUG_METODO
 		puts("=======================");
 		printf("Resume\t");
@@ -2468,7 +2619,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						break;
 					case	CHAR:; // BUG PARA UNICODE CHAR
 						u2	char_ = popOperand(thread->jvm_stack);
-					
+
 						char * utf8_char = (char *) &char_;
 						utf8_char[2] = '\0';
 						printf("%s", utf8_char);
@@ -2497,7 +2648,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 									printf("NaN");
 									isValidFloat = false;
 								}
-								
+
 						}
 						if(isValidFloat){
 							s4 s = ((float_bits >> 31) == 0) ? 1 : -1;
@@ -2512,7 +2663,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						u4	long_low_bytes = popOperand(thread->jvm_stack);
 						u4	long_high_bytes = popOperand(thread->jvm_stack);
 						s8	long_ = ((u8) long_high_bytes << 32) | long_low_bytes;
-	
+
 						printf("%" PRId64, long_);
 						break;
 					case	DOUBLE:;
@@ -2563,7 +2714,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				switch(method_descriptor[1]){
 					case	BOOLEAN:;
 						u1	boolean = (u1) popOperand(thread->jvm_stack);
-						
+
 						if(boolean){
 							append_string = (char *) malloc(5 * sizeof(char));
 							append_string[0] = '\0';
@@ -2590,13 +2741,13 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						break;
 					case	CHAR:;
 						u2	char_ = (u2) popOperand(thread->jvm_stack);
-					
+
 						append_string = (char *) malloc(2 * sizeof(char));
 						sprintf(append_string, "%c", (char) char_);
 						break;
 					case	SHORT:;
 						s2	short_ = (s2) popOperand(thread->jvm_stack);
-						
+
 						if(byte < 0){
 							length = -(short_/10) + 2;
 							length++;
@@ -2609,7 +2760,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						break;
 					case	INT:;
 						s4	int_ = (s4) popOperand(thread->jvm_stack);
-						
+
 						if(byte < 0){
 							length = -(int_/10) + 2;
 							length++;
@@ -2617,7 +2768,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						else{
 							length = int_/10 + 2;
 						}
-						
+
 						append_string = (char *) malloc(length * sizeof(char));
 						sprintf(append_string, "%" PRId32, int_);
 						break;
@@ -2625,7 +2776,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						u4	long_low_bytes = popOperand(thread->jvm_stack);
 						u4	long_high_bytes = popOperand(thread->jvm_stack);
 						s8	long_ = ((u8) long_high_bytes << 32) | long_low_bytes;
-						
+
 						if(byte < 0){
 							length = -(long_/10) + 2;
 							length++;
@@ -2633,7 +2784,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						else{
 							length = long_/10 + 2;
 						}
-						
+
 						append_string = (char *) malloc(length * sizeof(char));
 						sprintf(append_string, "%" PRId64, long_);
 						break;
@@ -2658,7 +2809,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 									sprintf(append_string, "NaN");
 									isValidFloat = false;
 								}
-								
+
 						}
 						if(isValidFloat){
 							s4 s = ((float_bits >> 31) == 0) ? 1 : -1;
@@ -2674,7 +2825,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						u4	double_low_bytes = popOperand(thread->jvm_stack);
 						u4	double_high_bytes = popOperand(thread->jvm_stack);
 						u8	double_bits = ((u8) double_high_bytes << 32) | double_low_bytes;
-						
+
 						bool	isValidDouble = true;
 						switch(double_bits){
 							case	0x7ff0000000000000L:
@@ -2714,7 +2865,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				string_buffer = (OBJECT *) realloc(string_buffer, strlen(append_string) + strlen((char *) string_buffer) + 1);
 				strcat((char *) string_buffer, append_string);
 				pushOperand((u4) string_buffer, thread->jvm_stack);
-				
+
 				#ifdef	DEBUG
 				printf("string_buffer:%s", (char *) string_buffer);
 				#endif
@@ -2722,11 +2873,11 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			else if(!strcmp(method_name, "toString")){
 				is_toString = true;
 			}
-		
+
 		}
 	}
 	u2	nargs;
-	u4	* args; 
+	u4	* args;
 	if(!is_print && !is_append && !is_toString){
 		// desempilha operandos e coloca no vetor de variaveis locais;
 		nargs = 0;
@@ -2778,7 +2929,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					break;
 			}
 			i++;
-		}	
+		}
 	}
 	OBJECT	* objectref;
 	CLASS_DATA	* super_class;
@@ -2801,7 +2952,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("IncompatibleClassChangeError");
 				exit(EXIT_FAILURE);
 			}
-			
+
 			CLASS_DATA	* class_objectref = objectref->class_data_reference;
 			if((invoked_method->modifiers & ACC_PROTECTED)){
 				CLASS_DATA	* super_class = getSuperClass((method->class_data)->classfile, jvm);
@@ -2813,7 +2964,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					else{
 						super_class =  getSuperClass(super_class->classfile, jvm);
 					}
-				}				
+				}
 				if(isSuperClass && ((invoked_method->class_data)->classloader_reference !=
 							 (method->class_data)->classloader_reference )){
 					if(class_objectref != method->class_data){
@@ -2844,12 +2995,12 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 							puts("UnsatisfiedLinkError");
 							exit(EXIT_FAILURE);
 						}
-			
+
 						if(invoked_method->modifiers & ACC_ABSTRACT){
 							puts("AbstractMethodError: método abstrato");
 							exit(EXIT_FAILURE);
 						}
-						executeMethod(method_name, method_descriptor, super_class, 
+						executeMethod(method_name, method_descriptor, super_class,
 								jvm, thread, NULL, nargs, args);
 						thread->program_counter = backupPC;
 						findMethod = true;
@@ -2940,7 +3091,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 								puts("UnsatisfiedLinkError");
 								exit(EXIT_FAILURE);
 							}
-						
+
 							backupPC = thread->program_counter;
 							executeMethod(method_name, method_descriptor, super_class,
 									jvm, thread, NULL, nargs, args);
@@ -2978,12 +3129,12 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("IllegalAccessError");
 				exit(EXIT_FAILURE);
 			}
-			
+
 			if(invoked_method->modifiers & ACC_NATIVE){
 				puts("UnsatisfiedLinkError");
 				exit(EXIT_FAILURE);
 			}
-			
+
 			backupPC = thread->program_counter;
 			executeMethod(method_name, method_descriptor, method_class, jvm, thread, NULL, nargs, args);
 			thread->program_counter = backupPC;
@@ -2998,7 +3149,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("NullPointerException");
 				exit(EXIT_FAILURE);
 			}
-			
+
 			if((!strcmp(method_name, "<init>")) || (!strcmp(method_name, "<clinit>"))){
 				puts("InvokeInterfaceInitError");
 				exit(EXIT_FAILURE);
@@ -3008,11 +3159,11 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("InvokeInterfaceError");
 				exit(EXIT_FAILURE);
 			}
-			
+
 			#ifdef	DEBUG
 			printf("\tcount	%" PRIu8, count);
 			#endif
-			
+
 			u4	fourth_operand = * (thread->program_counter + 4);
 			if(fourth_operand){
 				printf("\n%" PRIu32, fourth_operand);
@@ -3020,7 +3171,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				exit(EXIT_FAILURE);
 			}
 			class_objectref = objectref->class_data_reference;
-			
+
 			findMethod = false;
 			super_class = class_objectref;
 			while(super_class && !findMethod){
@@ -3035,13 +3186,13 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 							puts("UnsatisfiedLinkError");
 							exit(EXIT_FAILURE);
 						}
-						
+
 						if(!invoked_method->modifiers & ACC_PUBLIC){
 							puts(" IllegalAccessError");
 							exit(EXIT_FAILURE);
 						}
-						
-						executeMethod(method_name, method_descriptor, super_class, 
+
+						executeMethod(method_name, method_descriptor, super_class,
 								jvm, thread, NULL, nargs, args);
 						thread->program_counter = backupPC;
 						findMethod = true;
@@ -3094,14 +3245,14 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			}
 
 			cp_info	* cp_class_name = cp + cp_class->u.Class.name_index - 1;
-			
+
 			char	* class_name = cp_class_name->u.Utf8.bytes;
 			class_name[cp_class_name->u.Utf8.length] = '\0';
-			
+
 			#ifdef	DEBUG_INSTRUCAO
 			printf("\t<%s>\n", class_name);
 			#endif
-			
+
 			OBJECT	*	newObject;
 			if(!strcmp(class_name, "java/lang/StringBuffer")){
 				char * string = (char *) malloc(sizeof(char));
@@ -3116,7 +3267,7 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			u1	* backupPC = thread->program_counter;
 			CLASS_DATA	* object_class = getClass(cp_class_name, jvm);
 			if(!object_class){// se a classe do objeto não foi carregada
-				
+
 				char	* string = malloc((strlen(class_name) + 7) * sizeof(CHAR));
 				strcpy(string, class_name);
 				strcat(string, ".class");
@@ -3141,7 +3292,7 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			if((object_class->modifiers == ACC_INTERFACE) || (object_class->modifiers == ACC_ABSTRACT)){
 				puts("InstantiationError: Criação de objeto de interface ou class abstrata");
 			}
-			
+
 			newObject = (OBJECT *) malloc(sizeof(OBJECT));
 
 			newObject = (OBJECT *) malloc(sizeof(OBJECT));
@@ -3494,7 +3645,3 @@ INSTRUCTION	func[] = {
 		// 0xFE e 0xFF
 		impdep, impdep
 };
-
-
-
-

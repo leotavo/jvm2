@@ -1,4 +1,4 @@
-Testes:
+﻿Testes:
 
 AImpl.java = OK
 new, dup, invokespecial, invokeinterface, astore_2, astore_1, aload_2, lconst_1, return, getstatic, ldc.
@@ -15,9 +15,7 @@ Tadd = falta dadd (MATHEUS E LEO)
 Tsub = falta dsub (MATHEUS E LEO)
 Tmul = falta dmul (MATHEUS E LEO)
 Tdiv = falta ddiv (MATHEUS E LEO)
-Trem = NÃO IMPLEMENTADA (usa Tmul Tdiv e Tsub)
 Tinc = NÃO IMPLEMENTADA (MATHEUS)
-TcmpOP = falta testar (DANIEL)
 switch = NÃO IMPLEMENTADA
 Treturn = OK
 accessField = falta getfield (LEO)
@@ -51,12 +49,14 @@ l2T = falta testar (DANIEL)
 f2T = falta testar (DANIEL)
 d2T = falta testar (DANIEL)
 Tcmp = falta testar (DANIEL)
+TcmpOP = falta testar (DANIEL)
 ifOP = falta testar (DANIEL)
 if_icmOP = falta testar (DANIEL)
 if_acmOP = falta testar (DANIEL)
 jump = falta testar (DANIEL)
 ifNull = falta testar (DANIEL)
 widejump = falta testar (DANIEL)
+Trem = falta testar (DANIEL)
 
 Instruções funcionando:
 nop_ = OK (DANIEL)
@@ -66,7 +66,6 @@ ldc_ = OK (DANIEL)
 Tload = OK (DANIEL)
 Tstore = OK (DANIEL)
 nonDefined = OK
-
 
 
 
