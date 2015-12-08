@@ -1,3 +1,12 @@
+Testes:
+
+AImpl.java = OK
+new, dup, invokespecial, invokeinterface, astore_2, astore_1, aload_2, lconst_1, return, getstatic, ldc.
+
+C1.java = não trata Try/Catch
+ldc2_w, putstatic, return, invokespecial, astore_1, aload_1, invokevirtual, pop, pop2;
+aload_0, bipush, putfield, new, dup, goto, astore_2, istore_3, irreturn, lcd, freturn, lreturn, dreturn, areturn, 
+
 INTERPRETER - SITUAÇÃO:
 
 Instruções não implementadas:
@@ -8,11 +17,11 @@ Tmul = falta dmul (MATHEUS E LEO)
 Tdiv = falta ddiv (MATHEUS E LEO)
 Trem = NÃO IMPLEMENTADA (usa Tmul Tdiv e Tsub)
 Tinc = NÃO IMPLEMENTADA (MATHEUS)
-TcmpOP = NÃO IMPLEMENTADA
+TcmpOP = falta testar (DANIEL)
 switch = NÃO IMPLEMENTADA
-Treturn = NÃO IMPLEMENTADA (apenas return OK)
+Treturn = OK
 accessField = falta getfield (LEO)
-invoke = falta invokevirtual, invokedynamic, invokeinterface (LEO)
+invoke = falta invokedynamic
 handleObject = falta newarray, anewarray, arraylength, multianewarray (LEO)
 athrow = NÃO IMPLEMENTADA (opcional)
 properties = NÃO IMPLEMENTADA
