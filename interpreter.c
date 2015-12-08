@@ -3380,7 +3380,7 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		case	anewarray:
 			thread->program_counter += 3;
 			break;
-		case	newarray:
+		case	newarray:;
 			s4	count = popOperand(thread->jvm_stack);
 			
 			if(count < 0){

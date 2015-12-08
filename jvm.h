@@ -20,6 +20,17 @@
 
 typedef	u1	OPCODE;
 typedef char	TYPE;
+typedef	int	ARRAY_TYPE;
+
+#define	T_BOOLEAN	4
+#define	T_CHAR	5
+#define	T_FLOAT	6
+#define	T_DOUBLE	7
+#define	T_BYTE	8
+#define	T_SHORT	9
+#define	T_INT	10
+#define	T_LONG	11
+
 typedef	int8_t	s1;
 typedef int16_t	s2;
 typedef	int32_t	s4;
@@ -125,7 +136,7 @@ typedef	struct thread{
 // HEAP_AREA
 typedef	struct heap_area{	// https://docs.oracle.com/javase/specs/jvms/se6/html/Overview.doc.html#15730
 	struct object	* objects;
-	VALUE		* arrays;
+	struct array	* arrays;
 }HEAP_AREA;
 
 // FIELD_DATA
@@ -185,8 +196,10 @@ typedef	struct object{
 
 typedef	struct array{
 	CLASS_DATA	* class_data_reference;
-	u4		array_length;
+	u4		count;
 	VALUE		* entry;
+	ARRAY_TYPE	atype;
+	struct array	* prox;
 }ARRAY;
 
 // JVM
