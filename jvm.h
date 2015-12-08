@@ -31,10 +31,6 @@ typedef	int	ARRAY_TYPE;
 #define	T_INT	10
 #define	T_LONG	11
 
-typedef	int8_t	s1;
-typedef int16_t	s2;
-typedef	int32_t	s4;
-typedef	int64_t	s8;
 
 // Descritores de Fields
 #define		BYTE		'B'
@@ -48,6 +44,15 @@ typedef	int64_t	s8;
 #define		BOOLEAN		'Z'
 #define		REF_ARRAY	'['
 
+// 	Array types
+#define		T_BOOLEAN	4
+#define		T_CHAR		5
+#define		T_FLOAT		6
+#define		T_DOUBLE	7
+#define		T_BYTE		8
+#define		T_SHORT		9
+#define		T_INT		10
+#define		T_LONG		11
 
 // OBJECT
 typedef	struct object	obj;
@@ -196,7 +201,7 @@ typedef	struct object{
 
 typedef	struct array{
 	CLASS_DATA	* class_data_reference;
-	u4		count;
+	s4		count;
 	VALUE		* entry;
 	ARRAY_TYPE	atype;
 	struct array	* prox;

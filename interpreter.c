@@ -1,3 +1,4 @@
+
 // interpreter.c
 
 #include	"interpreter.h"
@@ -12,16 +13,6 @@
 #include	<wchar.h>
 
 
-/*	ARQUIVOS DE TESTE
-nop_
-	nao definido
-Tconst e Tstore
-	Exemplos/Tconst_Tstore.class
-Tipush
-	Exemplos/Tipush.class
-ldc_
-	Exemplos/ldc_class
-*/
 
 int	isWide = 0;
 
@@ -34,7 +25,6 @@ int	isWide = 0;
 //6.5. Instructions => AKI TEM UMA EXPLICAÇÃO DETALHADA DE CADA INSTRUÇÃO
 //https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5
 
-/*==========================================*/
 //	INTERPRETADOR
 void	interpreter(METHOD_DATA	* method, THREAD * thread, JVM * jvm){
 	thread->program_counter = method->bytecodes;
@@ -3697,3 +3687,4 @@ INSTRUCTION	func[] = {
 		// 0xFE e 0xFF
 		impdep, impdep
 };
+

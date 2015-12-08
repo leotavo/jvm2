@@ -15,6 +15,10 @@ typedef	uint8_t		u1;	// 1 byte
 typedef	uint16_t	u2;	// 2 bytes
 typedef	uint32_t	u4;	// 4 bytes
 typedef	uint64_t	u8;	// 8 bytes
+typedef	int8_t		s1;	// 1 byte
+typedef	int16_t		s2;	// 2 bytes
+typedef	int32_t		s4;	// 4 bytes
+typedef	int64_t		s8;	// 8 bytes
 /*======================================================*/
 //	INFO
 
