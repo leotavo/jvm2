@@ -9,10 +9,11 @@
 
 */
 /*==========================================*/
-/*#define		DEBUG	// COMENTAR OU DESCOMENTAR PARA IMPRESSOES DE DEBUG*/
+
 /*==========================================*/
 //	INCLUDES
 #include	"jvm.h"
+#include	"debug.h"
 #include	<stdio.h>
 #include	<stdlib.h>
 /*==========================================*/

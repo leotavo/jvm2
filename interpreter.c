@@ -4,12 +4,14 @@
 #include	"classreader.h"
 #include	"system.out.h"
 #include	"opcode.h"
+#include	"debug.h"
+
 #include	<stdlib.h>
 #include	<string.h>
 #include	<math.h>
 #include	<wchar.h>
 
-#define DEBUG
+
 /*	ARQUIVOS DE TESTE
 nop_
 	nao definido
@@ -37,7 +39,7 @@ int	isWide = 0;
 void	interpreter(METHOD_DATA	* method, THREAD * thread, JVM * jvm){
 	thread->program_counter = method->bytecodes;
 
-	#ifdef	DEBUG
+	#ifdef	DEBUG_INSTRUCAO
 	printf("PC\tOPCODE\n");
 	#endif
 
@@ -46,13 +48,13 @@ void	interpreter(METHOD_DATA	* method, THREAD * thread, JVM * jvm){
 
 	while(thread->program_counter < (method->bytecodes + method->code_length)){	// enquanto houver instruções
 
-		#ifdef	DEBUG
+		#ifdef	DEBUG_INSTRUCAO
 		printf("%" PRIu8 "\t%s", thread->program_counter - method->bytecodes, opcodes[* thread->program_counter]);
 		#endif
 
 		func[* thread->program_counter](method, thread, jvm);
 
-		#ifdef	DEBUG
+		#ifdef	DEBUG_INSTRUCAO
 		puts("");
 		#endif
 	}
@@ -2392,7 +2394,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	char	* method_name = cp_method_name->u.Utf8.bytes;
 	method_name[cp_method_name->u.Utf8.length] = '\0';
 
-	#ifdef	DEBUG
+	#ifdef	DEBUG_INSTRUCAO
 	printf("\t<%s.%s>\n", class_name, method_name);
 	#endif
 
@@ -2441,12 +2443,6 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		puts("AbstractMethodError: método não encontrado");
 		exit(EXIT_FAILURE);
 	}
-
-	if(invoked_method->modifiers & ACC_ABSTRACT){
-		puts("AbstractMethodError: método abstrato");
-		exit(EXIT_FAILURE);
-	}
-
 
 	if(!(invoked_method->modifiers & ACC_PUBLIC)){// SE O MÉTODO NÃO É PUBLICO
 		if(invoked_method->modifiers & ACC_PROTECTED){ // SE O MÉTODO É PROTECTED
@@ -2837,10 +2833,6 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("IncompatibleClassChangeError");
 				exit(EXIT_FAILURE);
 			}
-			if(invoked_method->modifiers & ACC_NATIVE){
-				puts("UnsatisfiedLinkError");
-				exit(EXIT_FAILURE);
-			}
 
 			CLASS_DATA	* class_objectref = objectref->class_data_reference;
 			if((invoked_method->modifiers & ACC_PROTECTED)){
@@ -2880,6 +2872,15 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				if(invoked_method = getMethod(method_name, method_descriptor, super_class)){
 					if(!(invoked_method->modifiers & ACC_STATIC)){
 						backupPC = thread->program_counter;
+						if(invoked_method->modifiers & ACC_NATIVE){
+							puts("UnsatisfiedLinkError");
+							exit(EXIT_FAILURE);
+						}
+
+						if(invoked_method->modifiers & ACC_ABSTRACT){
+							puts("AbstractMethodError: método abstrato");
+							exit(EXIT_FAILURE);
+						}
 						executeMethod(method_name, method_descriptor, super_class,
 								jvm, thread, NULL, nargs, args);
 						thread->program_counter = backupPC;
@@ -2963,6 +2964,15 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				while(super_class && !findMethod){
 					if(invoked_method = getMethod(method_name, method_descriptor, super_class)){
 						if(!(invoked_method->modifiers & ACC_STATIC)){
+							if(invoked_method->modifiers & ACC_ABSTRACT){
+								puts("AbstractMethodError: método abstrato");
+								exit(EXIT_FAILURE);
+							}
+							if(invoked_method->modifiers & ACC_NATIVE){
+								puts("UnsatisfiedLinkError");
+								exit(EXIT_FAILURE);
+							}
+
 							backupPC = thread->program_counter;
 							executeMethod(method_name, method_descriptor, super_class,
 									jvm, thread, NULL, nargs, args);
@@ -3000,13 +3010,19 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("IllegalAccessError");
 				exit(EXIT_FAILURE);
 			}
+
+			if(invoked_method->modifiers & ACC_NATIVE){
+				puts("UnsatisfiedLinkError");
+				exit(EXIT_FAILURE);
+			}
+
 			backupPC = thread->program_counter;
 			executeMethod(method_name, method_descriptor, method_class, jvm, thread, NULL, nargs, args);
 			thread->program_counter = backupPC;
 			break;
 		case	invokeinterface:
-			if(method_class->modifiers != ACC_INTERFACE){
-				puts("IncompatibleClassChangeError");
+			if(cp_method_ref->tag != CONSTANT_InterfaceMethodref){
+				puts("VerifyError: invokeinterface invalid method");
 				exit(EXIT_FAILURE);
 			}
 			objectref = (OBJECT *) popOperand(thread->jvm_stack);
@@ -3015,19 +3031,6 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				exit(EXIT_FAILURE);
 			}
 
-			if(!invoked_method->modifiers & ACC_PUBLIC){
-				puts(" IllegalAccessError");
-				exit(EXIT_FAILURE);
-			}
-
-			if(invoked_method->modifiers & ACC_STATIC){
-				puts("IncompatibleClassChangeError");
-				exit(EXIT_FAILURE);
-			}
-			if(invoked_method->modifiers & ACC_NATIVE){
-				puts("UnsatisfiedLinkError");
-				exit(EXIT_FAILURE);
-			}
 			if((!strcmp(method_name, "<init>")) || (!strcmp(method_name, "<clinit>"))){
 				puts("InvokeInterfaceInitError");
 				exit(EXIT_FAILURE);
@@ -3038,12 +3041,16 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				exit(EXIT_FAILURE);
 			}
 
-			u4	fourth_operand = popOperand(thread->jvm_stack);
+			#ifdef	DEBUG
+			printf("\tcount	%" PRIu8, count);
+			#endif
+
+			u4	fourth_operand = * (thread->program_counter + 4);
 			if(fourth_operand){
+				printf("\n%" PRIu32, fourth_operand);
 				puts("InvokeInterfaceError");
 				exit(EXIT_FAILURE);
 			}
-			objectref = (OBJECT *) popOperand(thread->jvm_stack);
 			class_objectref = objectref->class_data_reference;
 
 			findMethod = false;
@@ -3052,6 +3059,20 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				if(invoked_method = getMethod(method_name, method_descriptor, super_class)){
 					if(!(invoked_method->modifiers & ACC_STATIC)){
 						backupPC = thread->program_counter;
+						if(invoked_method->modifiers & ACC_ABSTRACT){
+							puts("AbstractMethodError: método abstrato");
+							exit(EXIT_FAILURE);
+						}
+						if(invoked_method->modifiers & ACC_NATIVE){
+							puts("UnsatisfiedLinkError");
+							exit(EXIT_FAILURE);
+						}
+
+						if(!invoked_method->modifiers & ACC_PUBLIC){
+							puts(" IllegalAccessError");
+							exit(EXIT_FAILURE);
+						}
+
 						executeMethod(method_name, method_descriptor, super_class,
 								jvm, thread, NULL, nargs, args);
 						thread->program_counter = backupPC;

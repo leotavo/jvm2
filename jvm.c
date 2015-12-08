@@ -11,6 +11,8 @@
 #include	"jvm.h"
 #include	"verifier.h"
 #include	"interpreter.h"
+#include	"debug.h"
+
 #include	<stdlib.h>
 #include	<string.h>
 #include	<stdbool.h>
@@ -41,9 +43,16 @@ https://docs.oracle.com/javase/specs/jvms/se6/html/Concepts.doc.html#19042
 	
 	CLASS_DATA	* main_class_data;
 	
-	
+/*	puts(class_filename);*/
 /*	puts("DEBUG:\tCLASS LOADING\n");*/
-	classLoading(class_filename, &main_class_data, NULL, jvm);
+
+	if(strstr(class_filename, ".class\0")){
+		classLoading(class_filename, &main_class_data, NULL, jvm);
+	}
+	else{
+		classLoading(strcat(class_filename, ".class"), &main_class_data, NULL, jvm);
+	}
+	
 /*	puts("DEBUG:\tCLASS LINKING\n");*/
 	classLinking(main_class_data, jvm);
 	
@@ -512,7 +521,7 @@ void	executeMethod(char * method_name, char * method_descriptor, CLASS_DATA * cd
 			frame->prox = thread->jvm_stack;
 			thread->jvm_stack = frame;
 			
-			#ifdef	DEBUG
+			#ifdef	DEBUG_METODO
 			puts("=======================");
 			printf("método: ");
 			PrintConstantUtf8(cd->class_name, stdout);
@@ -523,7 +532,7 @@ void	executeMethod(char * method_name, char * method_descriptor, CLASS_DATA * cd
 			// CHAMA O INTERPRETADOR
 			interpreter(method, thread, jvm);
 			
-			#ifdef	DEBUG
+			#ifdef	DEBUG_METODO_
 			puts("=======================");
 			printf("End\t");
 			PrintConstantUtf8(cd->class_name, stdout);
