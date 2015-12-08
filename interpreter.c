@@ -1145,6 +1145,96 @@ void	Trem(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lrem*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.frem*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.drem*/
+    switch(*thread->program_counter){
+        case irem:{
+            u4 value1, value2;
+            // get value from operand_stack
+            value2 = popOperand(thread->jvm_stack);
+            value1 =  popOperand(thread->jvm_stack);
+            //push value
+			pushOperand( (value1 % value2), thread->jvm_stack);
+
+			thread->program_counter++;
+			break;
+		}
+		case lrem:{
+			s8 long_value1, long_value2;
+			u4 high, low;
+
+			low = popOperand(thread->jvm_stack);
+			high = popOperand(thread->jvm_stack);
+			long_value2 = (s8) high;
+			long_value2 <<= 32;
+			long_value2 += low;
+
+            low = popOperand(thread->jvm_stack);
+			high = popOperand(thread->jvm_stack);
+			long_value1 = (s8) high;
+			long_value1 <<= 32;
+			long_value1 += low;
+
+			long_value1 = long_value1 % long_value2;
+
+			high = long_value1 >> 32;
+			low = long_value1 & 0xffffffff;
+
+			pushOperand(high, thread->jvm_stack);
+			pushOperand(low, thread->jvm_stack);
+
+			thread->program_counter++;
+			break;
+		}
+		case frem:{
+			float float_value1, float_value2;
+			u4 value;
+
+            value = popOperand(thread->jvm_stack);
+            memcpy(&float_value2, &value, sizeof(u4));
+
+            value = popOperand(thread->jvm_stack);
+            memcpy(&float_value1, &value, sizeof(u4));
+
+            float_value1 = fmodf( float_value1 , float_value2);
+
+            memcpy(&value, &float_value1, sizeof(u4));
+			pushOperand(value, thread->jvm_stack);
+
+            thread->program_counter++;
+            break;
+        }
+        case drem:{
+            u8 value;
+            u4 high, low;
+            double double_value1, double_value2;
+
+			low = popOperand(thread->jvm_stack);
+			high = popOperand(thread->jvm_stack);
+
+            value = (((u8) high) << 32) + low;
+
+            memcpy(&double_value2, &value, sizeof(u8));
+
+            low = popOperand(thread->jvm_stack);
+			high = popOperand(thread->jvm_stack);
+
+            value = (((u8) high) << 32) + low;
+
+            memcpy(&double_value1, &value, sizeof(u8));
+
+            double_value1 = fmod( double_value1 , double_value2 );
+
+            memcpy(&value, &double_value1, sizeof(u8));
+
+			high = value >> 32;
+			low = value & 0xffffffff;
+
+			pushOperand(high, thread->jvm_stack);
+			pushOperand(low, thread->jvm_stack);
+
+			thread->program_counter++;
+			break;
+		}
+	}
 }
 
 /*	INSTRUÇÕES BIT A BIT	*/
