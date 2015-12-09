@@ -2173,6 +2173,103 @@ void	jump(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	switch_(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.tableswitch*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lookupswitch*/
+	u2	bytepad_offset = ((u2) (thread->program_counter - method->bytecodes + 1)) % 4;
+	u1	* backupPC = thread->program_counter;
+	
+	thread->program_counter += bytepad_offset;
+	
+	u1	defaultbyte1 = * (++thread->program_counter);
+	u1	defaultbyte2 = * (++thread->program_counter);
+	u1	defaultbyte3 = * (++thread->program_counter);
+	u1	defaultbyte4 = * (++thread->program_counter);
+	s4	default_ = ((defaultbyte1 << 24) | ((defaultbyte2 << 16) | ((defaultbyte3 << 8) | defaultbyte4)));
+		
+	switch(* thread->program_counter){
+		case	tableswitch:;
+			u1	lowbyte1 = * (++thread->program_counter);
+			u1	lowbyte2 = * (++thread->program_counter);
+			u1	lowbyte3 = * (++thread->program_counter);
+			u1	lowbyte4 = * (++thread->program_counter);
+			s4	low = ((lowbyte1 << 24) | ((lowbyte2 << 16) | ((lowbyte3 << 8) | lowbyte4)));
+			
+			u1	highbyte1 = * (++thread->program_counter);
+			u1	highbyte2 = * (++thread->program_counter);
+			u1	highbyte3 = * (++thread->program_counter);
+			u1	highbyte4 = * (++thread->program_counter);
+			s4	high = ((highbyte1 << 24) | ((highbyte2 << 16) | ((highbyte3 << 8) | highbyte4)));
+			
+			if(low > high){
+				puts("VerifyError: invalid tableswitch arguments");
+			}	
+			
+			u4	num_jumps = high - low + 1;
+			u4	* jump_table = (u4 *) malloc(num_jumps * sizeof(u4));
+			for(u4 i = 0; i < num_jumps; i++){
+				jump_table[i] = * (++thread->program_counter);
+			}
+			s4	index = popOperand(thread->jvm_stack);
+				
+			if(index < low || index > high){
+				thread->program_counter = backupPC + default_;
+			}
+			else{
+				thread->program_counter = backupPC + jump_table[index - low];
+			}
+			
+			free(jump_table);		
+			break;
+		case	lookupswitch:;
+			u1	npairs1 = * (++thread->program_counter);
+			u1	npairs2 = * (++thread->program_counter);
+			u1	npairs3 = * (++thread->program_counter);
+			u1	npairs4 = * (++thread->program_counter);
+			s4	npairs = ((npairs1 << 24) | ((npairs2 << 16) | ((npairs3 << 8) | npairs4)));
+			
+			if(npairs < 0){
+				puts("VerifyError: invalid lookupswitch arguments");
+			}
+			
+			s4	* match_table = (s4 *) malloc(npairs * sizeof(s4));
+			s4	* offset_table = (s4 *) malloc(npairs * sizeof(s4));
+			for(s4 i = 0; i < npairs; i++){
+				u1	matchbyte1 = * (++thread->program_counter);
+				u1	matchbyte2 = * (++thread->program_counter);
+				u1	matchbyte3 = * (++thread->program_counter);
+				u1	matchbyte4 = * (++thread->program_counter);
+				s4	match = ((matchbyte1 << 24) | ((matchbyte2 << 16) | ((matchbyte3 << 8) | matchbyte4)));
+				match_table[i] = match;
+				
+				u1	offsetbyte1 = * (++thread->program_counter);
+				u1	offsetbyte2 = * (++thread->program_counter);
+				u1	offsetbyte3 = * (++thread->program_counter);
+				u1	offsetbyte4 = * (++thread->program_counter);
+				s4	offset = ((offsetbyte1 << 24) | ((offsetbyte2 << 16) | ((offsetbyte3 << 8) | offsetbyte4)));
+				offset_table[i] = offset;
+			}
+			
+			s4	key = (s4) popOperand(thread->jvm_stack);
+			
+			u4	index_match = 0;
+			bool	find_index = false;
+			
+			while(!find_index && index_match < npairs ){
+				if(match_table[index_match] == key){
+					find_index = true;
+				}
+				else{
+					index_match++;
+				}
+			}
+			
+			if(find_index){
+				thread->program_counter = backupPC + offset_table[index_match];
+			}
+			else{
+				puts("VerifyError: invalid lookupswitch arguments");
+				exit(EXIT_FAILURE);
+			}
+			break;
+	}
 }
 
 // Treturn	0xAC a 0xB1
