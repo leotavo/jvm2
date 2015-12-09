@@ -192,6 +192,8 @@ void	invoke(METHOD_DATA *, THREAD *, JVM *);
 //	criação e manipulação de objetos e arrays
 void	handleObject(METHOD_DATA *, THREAD *, JVM *);
 
+void	createMultiArray(ARRAY *, s4 *, u1, u1);
+
 // athrow	0xBF
 //	lançamento de exceções
 void	athrow(METHOD_DATA *, THREAD *, JVM *);

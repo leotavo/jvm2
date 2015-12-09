@@ -3223,27 +3223,41 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.anewarray*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.arraylength*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.multianewarray*/
+
+	s4	count;
+	u1	indexbyte1;
+	u1	indexbyte2;
+	u2	index;
+	cp_info	* cp_class;
+	cp_info	* cp;
+	cp_info	* cp_class_name;
+	char	* class_name;
+	ARRAY *	new_array;
+	u1	* backupPC;
+	ARRAY	* arrayref;
+	CLASS_DATA	* array_class;
+	
 	switch(* thread->program_counter){// PARA TESTAR O HELLOWORLD
 		case	new:;
-			u1	indexbyte1 = * (thread->program_counter + 1);
-			u1	indexbyte2 = * (thread->program_counter + 2);
-			u2	index = (indexbyte1 << 8) | indexbyte2;
+			indexbyte1 = * (thread->program_counter + 1);
+			indexbyte2 = * (thread->program_counter + 2);
+			index = (indexbyte1 << 8) | indexbyte2;
 
 			#ifdef	DEBUG_INSTRUCAO
 			printf("\t#%" PRIu16, index);
 			#endif
 
-			cp_info	* cp =(thread->jvm_stack)->current_constant_pool;
-			cp_info	* cp_class = cp + index - 1;
+			cp =(thread->jvm_stack)->current_constant_pool;
+			cp_class = cp + index - 1;
 
 			if(cp_class->tag != CONSTANT_Class){
 				puts("InstantiationError: Referência inválida para classe do objeto");
 				exit(EXIT_FAILURE);
 			}
 
-			cp_info	* cp_class_name = cp + cp_class->u.Class.name_index - 1;
+			cp_class_name = cp + cp_class->u.Class.name_index - 1;
 
-			char	* class_name = cp_class_name->u.Utf8.bytes;
+			class_name = cp_class_name->u.Utf8.bytes;
 			class_name[cp_class_name->u.Utf8.length] = '\0';
 
 			#ifdef	DEBUG_INSTRUCAO
@@ -3261,7 +3275,7 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			}
 
 			// CONTROLE DE ACESSO
-			u1	* backupPC = thread->program_counter;
+			backupPC = thread->program_counter;
 			CLASS_DATA	* object_class = getClass(cp_class_name, jvm);
 			if(!object_class){// se a classe do objeto não foi carregada
 
@@ -3368,16 +3382,84 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			thread->program_counter += 3;
 			break;
 		case	anewarray:
+			count = popOperand(thread->jvm_stack);
+			
+			if(count < 0){
+				puts("NegativeArraySizeException");
+				exit(EXIT_FAILURE);
+			}
+			
+			indexbyte1 = *(thread->program_counter + 1);
+			indexbyte2 = *(thread->program_counter + 2);
+			index = (indexbyte1 << 8) | indexbyte2;
+
+			#ifdef	DEBUG_INSTRUCAO
+			printf("\t#%" PRIu16, index);
+			#endif
+
+			cp = (thread->jvm_stack)->current_constant_pool;
+			cp_class = cp + index - 1;
+			
+			if(cp_class->tag !=CONSTANT_Class){
+				puts("VerifyError: invalid anewarray index ");
+				exit(EXIT_FAILURE);
+			}
+			
+			cp_class_name = cp + cp_class->u.Class.name_index - 1;
+
+			class_name = cp_class_name->u.Utf8.bytes;
+			class_name[cp_class_name->u.Utf8.length] = '\0';
+
+			#ifdef	DEBUG_INSTRUCAO
+			printf("\t<%s>\n", class_name);
+			#endif
+			
+			// CONTROLE DE ACESSO
+			backupPC = thread->program_counter;
+			CLASS_DATA	* array_class = getClass(cp_class_name, jvm);
+			if(!array_class){// se a classe do array não foi carregada
+
+				char	* string = malloc((strlen(class_name) + 7) * sizeof(CHAR));
+				strcpy(string, class_name);
+				strcat(string, ".class");
+
+				classLoading(string, &array_class, method->class_data, jvm);
+				free(string);
+				classLinking(array_class, jvm);
+				classInitialization(array_class, jvm, thread);
+
+				thread->program_counter = backupPC;
+			}
+			else{
+				if(array_class != method->class_data){// Se o array não for da mesma classe do método
+					// verifica se a classe do arrayé acessível pelo método corrente
+					if(!(array_class->modifiers & ACC_PUBLIC) & // se a classe não é public e não é do mesmo package
+					(array_class->classloader_reference != (method->class_data)->classloader_reference)){
+						puts("IllegalAccessError: acesso indevido à classe ou interface.");
+						exit(EXIT_FAILURE);
+					}
+				}
+			}
+			new_array = (ARRAY *) malloc(sizeof(ARRAY));
+			new_array->atype = (ARRAY_TYPE) array_class;
+			new_array->count = popOperand(thread->jvm_stack);
+			
+			new_array->entry = (VALUE *) malloc(count * sizeof(VALUE));
+			new_array->prox = (jvm->heap)->arrays;
+			(jvm->heap)->arrays = new_array;
+			
+			pushOperand((u4) new_array, thread->jvm_stack);
+			
 			thread->program_counter += 3;
 			break;
 		case	newarray:;
-			s4	count = popOperand(thread->jvm_stack);
+			count = popOperand(thread->jvm_stack);
 			
 			if(count < 0){
-				puts("NegativaArraySizeException");
+				puts("NegativeArraySizeException");
 				exit(EXIT_FAILURE);
 			}
-			ARRAY *	new_array = (ARRAY *) malloc(sizeof(ARRAY));
+			new_array = (ARRAY *) malloc(sizeof(ARRAY));
 			new_array->atype = * (thread->program_counter + 1);
 			new_array->count = count;
 			printf("\t%" PRIu32, new_array->atype);
@@ -3419,10 +3501,97 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			thread->program_counter += 2;
 			break;
 		case	arraylength:
+			arrayref = (ARRAY *) popOperand(thread->jvm_stack);
+			if(!arrayref){
+				puts("NullPointerException");
+				exit(EXIT_FAILURE);
+			}
+			pushOperand((s4) arrayref->count, thread->jvm_stack);
+			
 			break;
 		case	multianewarray:
+			indexbyte1 = *(thread->program_counter + 1);
+			indexbyte2 = *(thread->program_counter + 2);
+			index = (indexbyte1 << 8) | indexbyte2;
+			
+			u1	dimensions = *(thread->program_counter + 3);
+			if(dimensions < 0){
+				puts("NegativeArraySizeException");
+				exit(EXIT_FAILURE);
+			}
+		
+			#ifdef	DEBUG_INSTRUCAO
+			printf("\t#%" PRIu16, index);
+			#endif
+
+			cp = (thread->jvm_stack)->current_constant_pool;
+			cp_class = cp + index - 1;
+			
+			if(cp_class->tag !=CONSTANT_Class){
+				puts("VerifyError: invalid anewarray index ");
+				exit(EXIT_FAILURE);
+			}
+			
+			cp_class_name = cp + cp_class->u.Class.name_index - 1;
+
+			class_name = cp_class_name->u.Utf8.bytes;
+			class_name[cp_class_name->u.Utf8.length] = '\0';
+
+			#ifdef	DEBUG_INSTRUCAO
+			printf("\t<%s>\n", class_name);
+			#endif
+			
+			// CONTROLE DE ACESSO
+			backupPC = thread->program_counter;
+			array_class = getClass(cp_class_name, jvm);
+			if(!array_class){// se a classe do array não foi carregada
+
+				char	* string = malloc((strlen(class_name) + 7) * sizeof(CHAR));
+				strcpy(string, class_name);
+				strcat(string, ".class");
+
+				classLoading(string, &array_class, method->class_data, jvm);
+				free(string);
+				classLinking(array_class, jvm);
+				classInitialization(array_class, jvm, thread);
+
+				thread->program_counter = backupPC;
+			}
+			else{
+				if(array_class != method->class_data){// Se o array não for da mesma classe do método
+					// verifica se a classe do arrayé acessível pelo método corrente
+					if(!(array_class->modifiers & ACC_PUBLIC) & // se a classe não é public e não é do mesmo package
+					(array_class->classloader_reference != (method->class_data)->classloader_reference)){
+						puts("IllegalAccessError: acesso indevido à classe ou interface.");
+						exit(EXIT_FAILURE);
+					}
+				}
+			}
+						
+			s4	* count_values = (s4 *) malloc(sizeof(s4));
+			for(u1 i = 0; i < dimensions; i++){
+				count_values[i] = popOperand(thread->jvm_stack);
+			}
+			
+			arrayref = (ARRAY *) malloc(sizeof(ARRAY));
+			createMultiArray(arrayref, count_values, 0, dimensions);
+			pushOperand((u4) arrayref, thread->jvm_stack);
+			
 			thread->program_counter += 4;
 			break;
+	}
+}
+
+void	createMultiArray(ARRAY * arrayref, s4 * count_values, u1 i, u1 dimensions){
+	if(i < dimensions){
+		if(count_values[i] != 0){
+			arrayref->count = count_values[i];
+			arrayref->entry = (VALUE *) malloc(arrayref->count * sizeof(VALUE));
+			i++;
+			for(s4 j = 0; j < arrayref->count; j++){
+				createMultiArray(arrayref->entry[j].u.ArrayReference.reference, count_values, i, dimensions);
+			}
+		}
 	}
 }
 
