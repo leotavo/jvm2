@@ -23,11 +23,6 @@
 
 /*==========================================*/
 
-void	PrintConstantUtf8(cp_info * cp, FILE * out){
-	char	* string = (char *) cp->u.Utf8.bytes;
-	string[cp->u.Utf8.length] = '\0';
-	fprintf(out, "%s", string );
-}
 
 // função jvmStart
 void	jvmStart(char * class_filename, int num_args, char * args[]){
@@ -45,6 +40,21 @@ https://docs.oracle.com/javase/specs/jvms/se6/html/Concepts.doc.html#19042
 	
 /*	puts(class_filename);*/
 /*	puts("DEBUG:\tCLASS LOADING\n");*/
+	if(num_args == 1){
+		if(!strcmp(args[0], "show")){
+			FILE	*	binary_file;
+			if(strstr(class_filename, ".class\0")){
+				binary_file = fopen(class_filename, "rb");
+			}
+			else{
+				binary_file = fopen(strcat(class_filename, ".class"), "rb");
+			}
+			ClassFile	* cf	= loadClassFile(binary_file);
+			showClassFile(cf, stdout);
+			exit(0);
+		}
+	}
+	
 
 	if(strstr(class_filename, ".class\0")){
 		classLoading(class_filename, &main_class_data, NULL, jvm);

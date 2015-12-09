@@ -230,4 +230,6 @@ void	nonDefined(METHOD_DATA *, THREAD *, JVM *);
 //	(opcodes reservados) instruções que provêem backdoors para implementações específicas
 void	impdep(METHOD_DATA *, THREAD *, JVM *);
 
+
+
 #endif

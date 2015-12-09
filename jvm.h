@@ -13,6 +13,7 @@
 /*==========================================*/
 //	INCLUDES
 #include	"classreader.h"
+#include	"viewer.h"
 #include	<stdio.h>
 #include	<stdbool.h>
 /*==========================================*/
@@ -230,7 +231,6 @@ char		* getClassName(CLASS_DATA *);
 CLASS_DATA	* getSuperClass(ClassFile *, JVM *);
 CLASS_DATA	* getClass(cp_info *, JVM *);
 void		jvmExit(JVM *);
-void		PrintConstantUtf8(cp_info *, FILE *);
 VARIABLE	* getClassVariable(cp_info *, CLASS_DATA *);
 VARIABLE	* getInstanceVariable(cp_info *, OBJECT *);
 METHOD_DATA	* getMethod(char *, char *, CLASS_DATA *);
