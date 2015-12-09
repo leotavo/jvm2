@@ -6,7 +6,6 @@ Tadd = falta dadd (MATHEUS E LEO)
 Tsub = falta dsub (MATHEUS E LEO)
 Tmul = falta dmul (MATHEUS E LEO)
 Tdiv = falta ddiv (MATHEUS E LEO)
-switch = NÃO IMPLEMENTADA
 invoke = falta invokedynamic, corrigir bugs invokevirtual (parametros)
 properties = NÃO IMPLEMENTADA
 athrow = NÃO IMPLEMENTADA (opcional)
@@ -46,6 +45,7 @@ widejump = falta testar (DANIEL)
 Trem = falta testar (DANIEL)
 handleObject = falta testar (LEO)
 accessField = falta testar getfield (LEO)
+switch = falta testar
 
 Instruções funcionando:
 nop_ = OK (DANIEL)
