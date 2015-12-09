@@ -2244,6 +2244,8 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u1	indexbyte1 = *(thread->program_counter + 1);
 	u1	indexbyte2 = *(thread->program_counter + 2);
 	u2	index = (indexbyte1 << 8) | indexbyte2;
+	
+	OBJECT	* objectref;
 
 	#ifdef	DEBUG_INSTRUCAO
 	printf("\t#%" PRIu16, index);
@@ -2414,6 +2416,73 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			}
 			break;
 		case	getfield:
+			objectref = (OBJECT *) popOperand(thread->jvm_stack);
+			if(!objectref){
+				puts("NullPointerException");
+				exit(EXIT_FAILURE);
+			}
+			var = getInstanceVariable(cp_field_name, objectref);
+			if(!var){
+				puts("NoSuchFieldError");
+				exit(EXIT_FAILURE);
+			}
+			
+			if((var->field_reference)->modifiers & ACC_STATIC){
+				puts("IncompatibleClassChangeError");
+				exit(EXIT_FAILURE);
+			}
+				
+			if((var->field_reference)->modifiers & ACC_PROTECTED){ // SE O FIELD É PROTECTED
+				if(isSuperClass(field_class, method->class_data)){// se a classe do field é superclasse da classe corrente.
+					if((method->class_data)->classloader_reference != field_class->classloader_reference){
+						if(!(objectref->class_data_reference == method->class_data) &&
+						 !isSuperClass(method->class_data, objectref->class_data_reference)){
+						 	puts("IllegalAccessError");
+						 	exit(EXIT_FAILURE);
+						 }
+					}
+				}
+			}
+			switch((var->value).type){
+				case	BYTE:
+					pushOperand((s4) (var->value).u.Byte.byte, thread->jvm_stack);
+					break;
+				case	CHAR:
+					pushOperand((u4) (var->value).u.Char.char_, thread->jvm_stack);
+					break;
+				case	FLOAT:
+					pushOperand((u4) (var->value).u.Float.float_, thread->jvm_stack);
+					break;
+				case	INT:
+					pushOperand((s4) (var->value).u.Integer.integer, thread->jvm_stack);
+					break;
+				case	REF_INST:
+					pushOperand((u4) (var->value).u.ArrayReference.reference, thread->jvm_stack);
+					break;
+				case	SHORT:
+					pushOperand((s4) (var->value).u.Short.short_, thread->jvm_stack);
+					break;
+				case	BOOLEAN:
+					pushOperand((u4) (var->value).u.Boolean.boolean, thread->jvm_stack);
+					break;
+				case	REF_ARRAY:
+					pushOperand((u4) (var->value).u.InstanceReference.reference, thread->jvm_stack);
+					break;
+				case	DOUBLE:
+				case	LONG:;
+					if((var->value).type == DOUBLE){
+						pushOperand((u4) (var->value).u.Double.high_bytes, thread->jvm_stack);
+						pushOperand((u4) (var->value).u.Double.low_bytes, thread->jvm_stack);
+					}
+					else{
+						pushOperand((u4) (var->value).u.Long.high_bytes, thread->jvm_stack);
+						pushOperand((u4) (var->value).u.Long.low_bytes, thread->jvm_stack);
+					}
+					break;
+				default:
+					puts("VerifyError: descritor de field inválido");
+					exit(EXIT_FAILURE);
+			}
 			break;
 		case	putfield:;
 			VALUE	value;
@@ -2455,7 +2524,7 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					puts("VerifyError: descritor de field inválido");
 					exit(EXIT_FAILURE);
 			}
-			OBJECT	* objectref = (OBJECT *) popOperand(thread->jvm_stack);
+			objectref = (OBJECT *) popOperand(thread->jvm_stack);
 			if(!objectref){
 				puts("NullPointerException");
 				exit(EXIT_FAILURE);
@@ -2464,6 +2533,17 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			if(!var){
 				puts("NoSuchFieldError");
 				exit(EXIT_FAILURE);
+			}
+			if((var->field_reference)->modifiers & ACC_PROTECTED){ // SE O FIELD É PROTECTED
+				if(isSuperClass(field_class, method->class_data)){// se a classe do field é superclasse da classe corrente.
+					if((method->class_data)->classloader_reference != field_class->classloader_reference){
+						if(!(objectref->class_data_reference == method->class_data) &&
+						 !isSuperClass(method->class_data, objectref->class_data_reference)){
+						 	puts("IllegalAccessError");
+						 	exit(EXIT_FAILURE);
+						 }
+					}
+				}
 			}
 			var->value = value;
 			break;
