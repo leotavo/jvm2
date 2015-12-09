@@ -7,10 +7,8 @@ Tsub = falta dsub (MATHEUS E LEO)
 Tmul = falta dmul (MATHEUS E LEO)
 Tdiv = falta ddiv (MATHEUS E LEO)
 switch = NÃO IMPLEMENTADA
-accessField = falta getfield (LEO)
 invoke = falta invokedynamic, corrigir bugs invokevirtual (parametros)
 properties = NÃO IMPLEMENTADA
-
 athrow = NÃO IMPLEMENTADA (opcional)
 monitor = NÃO IMPLEMENTADA (opcional)
 breakpoint = NÃO IMPLEMENTADA (opcional)
@@ -47,6 +45,7 @@ ifNull = falta testar (DANIEL)
 widejump = falta testar (DANIEL)
 Trem = falta testar (DANIEL)
 handleObject = falta testar (LEO)
+accessField = falta testar getfield (LEO)
 
 Instruções funcionando:
 nop_ = OK (DANIEL)
