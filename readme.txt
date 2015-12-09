@@ -2,10 +2,6 @@ INTERPRETER - SITUAÇÃO:
 
 Instruções não implementadas:
 
-Tadd = falta dadd (MATHEUS E LEO)
-Tsub = falta dsub (MATHEUS E LEO)
-Tmul = falta dmul (MATHEUS E LEO)
-Tdiv = falta ddiv (MATHEUS E LEO)
 invoke = falta invokedynamic, corrigir bugs invokevirtual (parametros)
 properties = NÃO IMPLEMENTADA
 athrow = NÃO IMPLEMENTADA (opcional)
@@ -18,10 +14,10 @@ Instruções a serem testadas
 wide = falta testar (verificar sua implementação para as instruções relacionadas)
 Taload = falta testar (arrays) (DANIEL)
 Tastore = falta testar (arrays) (DANIEL)
-Tadd = falta dadd, falta testar as demais (MATHEUS E LEO)
-Tsub = falta dsub, falta testar as demais (MATHEUS E LEO)
-Tmul = falta dmul, falta testar as demais (MATHEUS E LEO)
-Tdiv = falta ddiv, falta testar as demais (MATHEUS E LEO)
+Tadd = falta testar (MATHEUS E LEO)
+Tsub = falta testar (MATHEUS E LEO)
+Tmul = falta testar(MATHEUS E LEO)
+Tdiv = falta testar (MATHEUS E LEO)
 handleStack = testado dup, instruções dup2 com bug (long e double), falta testar as demais. (DANIEL)
 Tneg = falta testar (DANIEL)
 Tshl = falta testar (YTALO)
