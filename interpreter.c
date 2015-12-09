@@ -794,41 +794,51 @@ void	Tadd(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			break;
 		case dadd:;
 			u8	first_double, second_double, total_double;
-			s4	sign1, sign2, sign_total;
-			s4	exponent1, exponent2, exponent_total;
-			s8	mantissa1, mantissa2, mantissa_total;
+/*			s4	sign1, sign2, sign_total;*/
+/*			s4	exponent1, exponent2, exponent_total;*/
+/*			s8	mantissa1, mantissa2, mantissa_total;*/
+			double	first, second, total;
 
 			// desempilha operandos
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			first_double = ((u8) high << 32) | low;
 
-			sign1 = ((first_double >> 63) == 0) ? 1 : -1;
-			exponent1 = ((first_double >> 52) & 0x7ffL);
-			mantissa1 = (exponent1 == 0) ?
-						(first_double & 0xfffffffffffffL) << 1 :
-						(first_double & 0xfffffffffffffL) | 0x10000000000000L;
+/*			sign1 = ((first_double >> 63) == 0) ? 1 : -1;*/
+/*			exponent1 = ((first_double >> 52) & 0x7ffL);*/
+/*			mantissa1 = (exponent1 == 0) ?*/
+/*						(first_double & 0xfffffffffffffL) << 1 :*/
+/*						(first_double & 0xfffffffffffffL) | 0x10000000000000L;*/
 
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			second_double = ((u8) high << 32) | low;
 
-			sign2 = ((second_double >> 63) == 0) ? 1 : -1;
-			exponent2 = ((second_double >> 52) & 0x7ffL);
-			mantissa2 = (exponent2 == 0) ?
-						(second_double & 0xfffffffffffffL) << 1 :
-						(second_double & 0xfffffffffffffL) | 0x10000000000000L;
-			if(!mantissa1){
-				total_double = second_double;
-			}
-			else if(!mantissa2){
-				total_double = first_double;
-			}
-			else{
-				// reduzir ao maior expoente
-				// somar/subtrair as mantissas
-				// normalizar o resultado
-			}
+/*			sign2 = ((second_double >> 63) == 0) ? 1 : -1;*/
+/*			exponent2 = ((second_double >> 52) & 0x7ffL);*/
+/*			mantissa2 = (exponent2 == 0) ?*/
+/*						(second_double & 0xfffffffffffffL) << 1 :*/
+/*						(second_double & 0xfffffffffffffL) | 0x10000000000000L;*/
+/*			if(!mantissa1){*/
+/*				total_double = second_double;*/
+/*			}*/
+/*			else if(!mantissa2){*/
+/*				total_double = first_double;*/
+/*			}*/
+/*			else{*/
+/*				// reduzir ao maior expoente*/
+/*				// somar/subtrair as mantissas*/
+/*				// normalizar o resultado*/
+/*			}*/
+			memcpy(&first, &first_double, sizeof(u8));
+			memcpy(&second, &second_double, sizeof(u8));
+			total = first + second;
+			memcpy(&total_double, &total, sizeof(u8));
+			high = total_double >> 32;
+			low = total_double & 0xffffffff;
+			pushOperand(high, thread->jvm_stack);
+			pushOperand(low, thread->jvm_stack);		
+			
 			break;
 	}
 	thread->program_counter++;
@@ -891,47 +901,56 @@ void	Tsub(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			break;
 		case dsub:;
 			u8	first_double, second_double, total_double;
-			s4	sign1, sign2, sign_total;
-			s4	exponent1, exponent2, exponent_total;
-			s8	mantissa1, mantissa2, mantissa_total;
+/*			s4	sign1, sign2, sign_total;*/
+/*			s4	exponent1, exponent2, exponent_total;*/
+/*			s8	mantissa1, mantissa2, mantissa_total;*/
+			double	first, second, total;
 
 			// desempilha operandos
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			first_double = ((u8) high << 32) | low;
 
-			sign1 = ((first_double >> 63) == 0) ? 1 : -1;
-			exponent1 = ((first_double >> 52) & 0x7ffL);
-			mantissa1 = (exponent1 == 0) ?
-						(first_double & 0xfffffffffffffL) << 1 :
-						(first_double & 0xfffffffffffffL) | 0x10000000000000L;
+/*			sign1 = ((first_double >> 63) == 0) ? 1 : -1;*/
+/*			exponent1 = ((first_double >> 52) & 0x7ffL);*/
+/*			mantissa1 = (exponent1 == 0) ?*/
+/*						(first_double & 0xfffffffffffffL) << 1 :*/
+/*						(first_double & 0xfffffffffffffL) | 0x10000000000000L;*/
 
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			second_double = ((u8) high << 32) | low;
 
-			sign2 = ((second_double >> 63) == 0) ? 1 : -1;
-			exponent2 = ((second_double >> 52) & 0x7ffL);
-			mantissa2 = (exponent2 == 0) ?
-						(second_double & 0xfffffffffffffL) << 1 :
-						(second_double & 0xfffffffffffffL) | 0x10000000000000L;
-			if(!mantissa1){
-				total_double = second_double;
-				if(sign2 == 1){
-					total_double |= 0x8000000000000000L;
-				}
-				else{
-					total_double &= 0X7FFFFFFFFFFFFFFFL;
-				}
-			}
-			else if(!mantissa2){
-				total_double = first_double;
-			}
-			else{
-				// reduzir ao maior expoente
-				// somar/subtrair as mantissas
-				// normalizar o resultado
-			}
+/*			sign2 = ((second_double >> 63) == 0) ? 1 : -1;*/
+/*			exponent2 = ((second_double >> 52) & 0x7ffL);*/
+/*			mantissa2 = (exponent2 == 0) ?*/
+/*						(second_double & 0xfffffffffffffL) << 1 :*/
+/*						(second_double & 0xfffffffffffffL) | 0x10000000000000L;*/
+/*			if(!mantissa1){*/
+/*				total_double = second_double;*/
+/*				if(sign2 == 1){*/
+/*					total_double |= 0x8000000000000000L;*/
+/*				}*/
+/*				else{*/
+/*					total_double &= 0X7FFFFFFFFFFFFFFFL;*/
+/*				}*/
+/*			}*/
+/*			else if(!mantissa2){*/
+/*				total_double = first_double;*/
+/*			}*/
+/*			else{*/
+/*				// reduzir ao maior expoente*/
+/*				// somar/subtrair as mantissas*/
+/*				// normalizar o resultado*/
+/*			}*/
+			memcpy(&first, &first_double, sizeof(u8));
+			memcpy(&second, &second_double, sizeof(u8));
+			total = first + second;
+			memcpy(&total_double, &total, sizeof(u8));
+			high = total_double >> 32;
+			low = total_double & 0xffffffff;
+			pushOperand(high, thread->jvm_stack);
+			pushOperand(low, thread->jvm_stack);
 			break;
 	}
 	thread->program_counter++;
@@ -994,38 +1013,47 @@ void	Tmul(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			break;
 		case dmul:;
 			u8	first_double, second_double, total_double;
-			s4	sign1, sign2, sign_total;
-			s4	exponent1, exponent2, exponent_total;
-			s8	mantissa1, mantissa2, mantissa_total;
+/*			s4	sign1, sign2, sign_total;*/
+/*			s4	exponent1, exponent2, exponent_total;*/
+/*			s8	mantissa1, mantissa2, mantissa_total;*/
+			double	first, second, total;
 
 			// desempilha operandos
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			first_double = ((u8) high << 32) | low;
 
-			sign1 = ((first_double >> 63) == 0) ? 1 : -1;
-			exponent1 = ((first_double >> 52) & 0x7ffL);
-			mantissa1 = (exponent1 == 0) ?
-						(first_double & 0xfffffffffffffL) << 1 :
-						(first_double & 0xfffffffffffffL) | 0x10000000000000L;
+/*			sign1 = ((first_double >> 63) == 0) ? 1 : -1;*/
+/*			exponent1 = ((first_double >> 52) & 0x7ffL);*/
+/*			mantissa1 = (exponent1 == 0) ?*/
+/*						(first_double & 0xfffffffffffffL) << 1 :*/
+/*						(first_double & 0xfffffffffffffL) | 0x10000000000000L;*/
 
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			second_double = ((u8) high << 32) | low;
 
-			sign2 = ((second_double >> 63) == 0) ? 1 : -1;
-			exponent2 = ((second_double >> 52) & 0x7ffL);
-			mantissa2 = (exponent2 == 0) ?
-						(second_double & 0xfffffffffffffL) << 1 :
-						(second_double & 0xfffffffffffffL) | 0x10000000000000L;
-			if(!mantissa1 || !mantissa2){
-				total_double = 0;
-			}
-			else{
-				// somar os expoentes
-				// multiplicar as mantissas
-				// normalizar o resultado
-			}
+/*			sign2 = ((second_double >> 63) == 0) ? 1 : -1;*/
+/*			exponent2 = ((second_double >> 52) & 0x7ffL);*/
+/*			mantissa2 = (exponent2 == 0) ?*/
+/*						(second_double & 0xfffffffffffffL) << 1 :*/
+/*						(second_double & 0xfffffffffffffL) | 0x10000000000000L;*/
+/*			if(!mantissa1 || !mantissa2){*/
+/*				total_double = 0;*/
+/*			}*/
+/*			else{*/
+/*				// somar os expoentes*/
+/*				// multiplicar as mantissas*/
+/*				// normalizar o resultado*/
+/*			}*/
+			memcpy(&first, &first_double, sizeof(u8));
+			memcpy(&second, &second_double, sizeof(u8));
+			total = first + second;
+			memcpy(&total_double, &total, sizeof(u8));
+			high = total_double >> 32;
+			low = total_double & 0xffffffff;
+			pushOperand(high, thread->jvm_stack);
+			pushOperand(low, thread->jvm_stack);
 			break;
 	}
 	thread->program_counter++;
@@ -1087,42 +1115,55 @@ void	Tdiv(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			break;
 		case ddiv:;
 			u8	first_double, second_double, total_double;
-			s4	sign1, sign2, sign_total;
-			s4	exponent1, exponent2, exponent_total;
-			s8	mantissa1, mantissa2, mantissa_total;
+/*			s4	sign1, sign2, sign_total;*/
+/*			s4	exponent1, exponent2, exponent_total;*/
+/*			s8	mantissa1, mantissa2, mantissa_total;*/
+			double	first, second, total;
 
 			// desempilha operandos
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			first_double = ((u8) high << 32) | low;
 
-			sign1 = ((first_double >> 63) == 0) ? 1 : -1;
-			exponent1 = ((first_double >> 52) & 0x7ffL);
-			mantissa1 = (exponent1 == 0) ?
-						(first_double & 0xfffffffffffffL) << 1 :
-						(first_double & 0xfffffffffffffL) | 0x10000000000000L;
+/*			sign1 = ((first_double >> 63) == 0) ? 1 : -1;*/
+/*			exponent1 = ((first_double >> 52) & 0x7ffL);*/
+/*			mantissa1 = (exponent1 == 0) ?*/
+/*						(first_double & 0xfffffffffffffL) << 1 :*/
+/*						(first_double & 0xfffffffffffffL) | 0x10000000000000L;*/
 
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			second_double = ((u8) high << 32) | low;
 
-			sign2 = ((second_double >> 63) == 0) ? 1 : -1;
-			exponent2 = ((second_double >> 52) & 0x7ffL);
-			mantissa2 = (exponent2 == 0) ?
-						(second_double & 0xfffffffffffffL) << 1 :
-						(second_double & 0xfffffffffffffL) | 0x10000000000000L;
-			if(!mantissa2){
+/*			sign2 = ((second_double >> 63) == 0) ? 1 : -1;*/
+/*			exponent2 = ((second_double >> 52) & 0x7ffL);*/
+/*			mantissa2 = (exponent2 == 0) ?*/
+/*						(second_double & 0xfffffffffffffL) << 1 :*/
+/*						(second_double & 0xfffffffffffffL) | 0x10000000000000L;*/
+/*			if(!mantissa2){*/
+/*				puts("DivisionByZeroError");*/
+/*				exit(EXIT_FAILURE);*/
+/*			}*/
+/*			else if(!mantissa2){*/
+/*				total_double = 0;*/
+/*			}*/
+/*			else{*/
+/*				// subtrair os expoentes*/
+/*				// dividir as mantissas*/
+/*				// normalizar o resultado*/
+/*			}*/
+			memcpy(&first, &first_double, sizeof(u8));
+			memcpy(&second, &second_double, sizeof(u8));
+			if(second == 0.0 || second == -0.0){
 				puts("DivisionByZeroError");
 				exit(EXIT_FAILURE);
 			}
-			else if(!mantissa2){
-				total_double = 0;
-			}
-			else{
-				// subtrair os expoentes
-				// dividir as mantissas
-				// normalizar o resultado
-			}
+			total = first / second;
+			memcpy(&total_double, &total, sizeof(u8));
+			high = total_double >> 32;
+			low = total_double & 0xffffffff;
+			pushOperand(high, thread->jvm_stack);
+			pushOperand(low, thread->jvm_stack);
 			break;
 	}
 	thread->program_counter++;
@@ -3783,6 +3824,31 @@ void	athrow_(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	properties(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.checkcast*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.instanceof*/
+	switch(* thread->program_counter){
+		case	checkcast:;
+/*			u1	indexbyte1 = * (thread->program_counter + 1);*/
+/*			u1	indexbyte2 = * (thread->program_counter + 2);*/
+/*			u2	index = (indexbyte1 << 8) | indexbyte2;*/
+/*			*/
+/*			cp_info	* cp = (thread->jvm_stack)->current_constant_pool;*/
+/*			cp_info	* cp_class = cp + index - 1;*/
+/*			if(cp_class->tag != CONSTANT_Class){*/
+/*				puts("VerifyError: invalid checkcast index");*/
+/*				exit(EXIT_FAILURE);*/
+/*			}*/
+/*			OBJECT	* objectref = (OBJECT *) popOperand(thread->jvm_stack);*/
+/*			if(!objectref){*/
+/*				pushOperand((u4) objectref, thread->jvm_stack);*/
+/*			}*/
+/*			else{*/
+/*				*/
+/*			}*/
+/*				*/
+			break;
+		case	instanceof:
+			break;
+	}
+	thread->program_counter += 3;
 }
 
 // monitor	0xC2 e 0xC3
