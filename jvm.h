@@ -20,7 +20,7 @@
 
 typedef	u1	OPCODE;
 typedef char	TYPE;
-typedef	int	ARRAY_TYPE;
+typedef	u4	ARRAY_TYPE;
 
 #define	T_BOOLEAN	4
 #define	T_CHAR	5
