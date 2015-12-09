@@ -1,5 +1,3 @@
-
-
 INTERPRETER - SITUAÇÃO:
 
 Instruções não implementadas:
@@ -11,9 +9,9 @@ Tdiv = falta ddiv (MATHEUS E LEO)
 switch = NÃO IMPLEMENTADA
 accessField = falta getfield (LEO)
 invoke = falta invokedynamic, corrigir bugs invokevirtual (parametros)
-handleObject = falta newarray, anewarray, arraylength, multianewarray (LEO)
-athrow = NÃO IMPLEMENTADA (opcional)
 properties = NÃO IMPLEMENTADA
+
+athrow = NÃO IMPLEMENTADA (opcional)
 monitor = NÃO IMPLEMENTADA (opcional)
 breakpoint = NÃO IMPLEMENTADA (opcional)
 impdep = NÃO IMPLEMENTADA (opcional)
@@ -48,6 +46,7 @@ jump = falta testar (DANIEL)
 ifNull = falta testar (DANIEL)
 widejump = falta testar (DANIEL)
 Trem = falta testar (DANIEL)
+handleObject = falta testar (LEO)
 
 Instruções funcionando:
 nop_ = OK (DANIEL)
