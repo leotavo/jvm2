@@ -171,7 +171,7 @@ void	Tipush(METHOD_DATA * method, THREAD * thread, JVM * jvm){ // TESTAR NEGATIV
 			aux1 = (s1) * (thread->program_counter + 1);
 			pushOperand((u4) aux1, thread->jvm_stack);
 			
-			#ifdef	DEBUG
+			#ifdef	DEBUG_INSTRUCAO
 			printf("\t%" PRId8, aux1);
 			#endif
 			
@@ -222,7 +222,7 @@ void	ldc_(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			index = (high << 8) | low;
 			thread->program_counter ++;
 		}
-		#ifdef	DEBUG
+		#ifdef	DEBUG_INSTRUCAO
 		printf("\t#%" PRIu16, index);
 		#endif
 		
@@ -841,6 +841,7 @@ void	Tadd(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			}
 			break;
 	}
+	thread->program_counter++;
 }
 
 // Tsub		0x64 a 0x67
@@ -2038,7 +2039,36 @@ void	Treturn(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.dreturn*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.areturn*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.return*/
+	FRAME	*	aux = thread->jvm_stack;
+	u4	value, value_h, value_l;
 	switch(* thread->program_counter){// PARA TESTAR O HELLOWORLD
+		case	ireturn:
+		case	freturn:
+		case	areturn:
+			value = popOperand(thread->jvm_stack);
+			// retorna a execução ao método invocador;
+			thread->jvm_stack = (thread->jvm_stack)->prox;
+			free(aux->local_variables);
+			if(aux->operand_stack){
+				free(aux->operand_stack);
+			}
+			free(aux);
+			pushOperand(value, thread->jvm_stack);
+			break;
+		case	lreturn:
+		case	dreturn:
+			value_l = popOperand(thread->jvm_stack);
+			value_h = popOperand(thread->jvm_stack);
+			// retorna a execução ao método invocador;
+			thread->jvm_stack = (thread->jvm_stack)->prox;
+			free(aux->local_variables);
+			if(aux->operand_stack){
+				free(aux->operand_stack);
+			}
+			free(aux);
+			pushOperand(value_h, thread->jvm_stack);
+			pushOperand(value_l, thread->jvm_stack);
+			break;
 		case	return_:;
 			// retorna a execução ao método invocador;
 			FRAME	*	aux = thread->jvm_stack;
@@ -2098,7 +2128,7 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	char	* field_descriptor = cp_field_descriptor->u.Utf8.bytes;
 	field_descriptor[cp_field_descriptor->u.Utf8.length] = '\0';
 
-	#ifdef	DEBUG
+	#ifdef	DEBUG_INSTRUCAO
 	printf("\t<%s.%s>", class_name, field_name);
 	#endif
 	
@@ -2122,7 +2152,7 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		classInitialization(field_class, jvm, thread);
 		thread->program_counter = backupPC;
 		
-		#ifdef	DEBUG
+		#ifdef	DEBUG_METODO
 		puts("\n=======================");
 		printf("Resume\t");
 		PrintConstantUtf8((method->class_data)->class_name, stdout);
@@ -2361,7 +2391,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		classInitialization(method_class, jvm, thread);
 		thread->program_counter = backupPC;
 		
-		#ifdef	DEBUG
+		#ifdef	DEBUG_METODO
 		puts("=======================");
 		printf("Resume\t");
 		PrintConstantUtf8((method->class_data)->class_name, stdout);
@@ -3051,8 +3081,8 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			u1	indexbyte2 = * (thread->program_counter + 2);
 			u2	index = (indexbyte1 << 8) | indexbyte2;
 
-			#ifdef	DEBUG
-			printf("\t%" PRIu16, index);
+			#ifdef	DEBUG_INSTRUCAO
+			printf("\t#%" PRIu16, index);
 			#endif
 
 			cp_info	* cp =(thread->jvm_stack)->current_constant_pool;
@@ -3068,7 +3098,7 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			char	* class_name = cp_class_name->u.Utf8.bytes;
 			class_name[cp_class_name->u.Utf8.length] = '\0';
 			
-			#ifdef	DEBUG
+			#ifdef	DEBUG_INSTRUCAO
 			printf("\t<%s>\n", class_name);
 			#endif
 			
