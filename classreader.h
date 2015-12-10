@@ -92,16 +92,6 @@ no .class na struct ClassFile.
 #define		ATTRIBUTE_TYPE			short
 
 /*======================================================*/
-//	TIPOS
-
-typedef	uint8_t		u1;	// 1 byte
-typedef	uint16_t	u2;	// 2 bytes
-typedef	uint32_t	u4;	// 4 bytes
-typedef	uint64_t	u8;	// 4 bytes
-
-extern	char	*	exceptions[] ;
-
-/*======================================================*/
 
 // estrutura de dados ClassFile
 typedef struct ClassFile{
