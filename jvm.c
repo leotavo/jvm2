@@ -11,6 +11,8 @@
 #include	"jvm.h"
 #include	"verifier.h"
 #include	"interpreter.h"
+#include	"debug.h"
+
 #include	<stdlib.h>
 #include	<string.h>
 #include	<stdbool.h>

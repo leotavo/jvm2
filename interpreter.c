@@ -4,6 +4,8 @@
 #include	"classreader.h"
 #include	"system.out.h"
 #include	"opcode.h"
+#include	"debug.h"
+
 #include	<stdlib.h>
 #include	<string.h>
 #include	<math.h>
