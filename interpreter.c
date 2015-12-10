@@ -36,19 +36,28 @@ int	isWide = 0;
 //	INTERPRETADOR
 void	interpreter(METHOD_DATA	* method, THREAD * thread, JVM * jvm){
 	thread->program_counter = method->bytecodes;
-	printf("PC\tOPCODE");
-	OPERAND		* operand = (thread->jvm_stack)->operand_stack; 
-	puts("");
-	while(thread->program_counter < (method->bytecodes + method->code_length)){	// enquanto houver instruções	
+	
+	#ifdef	DEBUG
+	printf("PC\tOPCODE\n");
+	#endif
+	
+	OPERAND		* operand = (thread->jvm_stack)->operand_stack;
+	
+	
+	while(thread->program_counter < (method->bytecodes + method->code_length)){	// enquanto houver instruções
+	
+		#ifdef	DEBUG
 		printf("%" PRIu8 "\t%s", thread->program_counter - method->bytecodes, opcodes[* thread->program_counter]);
+		#endif
+		
 		func[* thread->program_counter](method, thread, jvm);
+		
+		#ifdef	DEBUG
 		puts("");
+		#endif
 	}
 }
 
-void	printStack(THREAD * thread){
-	printf("Topo = %" PRIu32 "; 0x%" PRIX32, ((thread->jvm_stack)->operand_stack)->value, ((thread->jvm_stack)->operand_stack)->value);
-}
 
 /*==========================================*/
 //	INSTRUÇÕES
@@ -159,7 +168,11 @@ void	Tipush(METHOD_DATA * method, THREAD * thread, JVM * jvm){ // TESTAR NEGATIV
 			s1 aux1;
 			aux1 = (s1) * (thread->program_counter + 1);
 			pushOperand((u4) aux1, thread->jvm_stack);
+			
+			#ifdef	DEBUG
 			printf("\t%" PRId8, aux1);
+			#endif
+			
 			break;
 		case sipush:;
 			u1 high;
@@ -169,7 +182,11 @@ void	Tipush(METHOD_DATA * method, THREAD * thread, JVM * jvm){ // TESTAR NEGATIV
 			low = * (thread->program_counter + 2);
 			aux2 = (high << 8) | low;
 			pushOperand((u4) aux2, thread->jvm_stack);
+			
+			#ifdef	DEBUG
 			printf("\t%" PRId16, aux2);
+			#endif
+			
 			thread->program_counter++;
 			break;
 	}
@@ -203,17 +220,28 @@ void	ldc_(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			index = (high << 8) | low;
 			thread->program_counter ++;
 		}
+		#ifdef	DEBUG
 		printf("\t#%" PRIu16, index);
+		#endif
+		
 		cp = (thread->jvm_stack)->current_constant_pool + index - 1;
 		switch(cp->tag)	{
 			case (CONSTANT_Integer):
+			
+				#ifdef	DEBUG
 				printf("\t<%" PRId32 ">", cp->u.Integer_Float.bytes);
+				#endif
+				
 			case (CONSTANT_Float):
 				if(cp->tag == CONSTANT_Float){
 					float aux;
 					memcpy(&aux, &(cp->u.Integer_Float.bytes), sizeof(u4));
+					
+					#ifdef	DEBUG
 					printf("\t<%E>", aux);
-				} 
+					#endif
+					
+				}
 				*value = cp->u.Integer_Float.bytes;
 				pushOperand(* value, thread->jvm_stack);
 				break;
@@ -221,18 +249,29 @@ void	ldc_(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				cp_aux = (thread->jvm_stack)->current_constant_pool + cp->u.String.string_index - 1;
 				string = (char *) cp_aux->u.Utf8.bytes;
 				string[cp_aux->u.Utf8.length] = '\0';
+				
+				#ifdef	DEBUG
 				printf("\t<%s>", string);
+				#endif
+				
 				*value = (u4) string;
 				pushOperand(* value, thread->jvm_stack);
 				break;
 			case (CONSTANT_Long):
+			
+				#ifdef	DEBUG
 				printf("\t<%" PRId64 ">", ((s8) cp->u.Long_Double.high_bytes << 32) | cp->u.Long_Double.low_bytes);
+				#endif
+				
 			case (CONSTANT_Double):
 				if(cp->tag == CONSTANT_Double){
 					double	aux;
 					u8 auxd = ((u8) cp->u.Long_Double.high_bytes << 32) | cp->u.Long_Double.low_bytes;
 					memcpy(&aux, &auxd, sizeof(double));
+					
+					#ifdef	DEBUG
 					printf("\t<%E>", aux);
+					#endif
 				}
 				*value = cp->u.Long_Double.high_bytes;
 				pushOperand(* value, thread->jvm_stack);
@@ -281,10 +320,13 @@ void	Tload(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				index = index | *(thread->program_counter);
 				isWide = 0;
 			}
+			#ifdef	DEBUG
 			printf("\t%" PRIu16, index);
+			#endif
+			
 			*value = (thread->jvm_stack)->local_variables[index];
 			pushOperand(* value, thread->jvm_stack);
-			
+
 			if(*thread->program_counter == lload || *thread->program_counter == dload){
 				*value = (thread->jvm_stack)->local_variables[index + 1];
 				pushOperand(* value, thread->jvm_stack);
@@ -378,10 +420,10 @@ void	Taload(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u4	index;
 	u4	* value = (u4*) malloc(sizeof(u4));
 	ARRAY	* arrayref;
-	
+
 	// get index from operand_stack
 	index = popOperand(thread->jvm_stack);
-			
+
 	// get reference from operand_stack
 	arrayref = (ARRAY *) popOperand(thread->jvm_stack);
 	switch(*thread->program_counter){
@@ -434,98 +476,108 @@ void	Tstore(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.fstore_n*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.dstore_n*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.astore_n*/
-	u1 index;
-	u4 value;
-	u4 high, low;
-	switch(* thread->program_counter){
-		case istore:
-		case fstore:
-		case astore:
-			index = * (thread->program_counter + 1);
-			printf("\t%" PRIu8, index);
-			
-			// get value from operand_stack
-			value = popOperand(thread->jvm_stack);
-			
-			// store value into local variables
-			(thread->jvm_stack)->local_variables[index] = value;
-			
-			thread->program_counter++;
-			break;
-		case lstore:
-		case dstore:
-			index = * (thread->program_counter + 1);
-			printf("\t%" PRIu8, index);
-			
-			// get high and low from operand_stack
-			low = popOperand(thread->jvm_stack);
-			high = popOperand(thread->jvm_stack);
-			
-			// store high and lowinto local variables
-			(thread->jvm_stack)->local_variables[index] = high;
-			(thread->jvm_stack)->local_variables[index + 1] = low;
-			thread->program_counter++;
-			break;
-		case istore_0:
-		case istore_1:
-		case istore_2:
-		case istore_3:
-		case fstore_0:
-		case fstore_1:
-		case fstore_2:
-		case fstore_3:
-		case astore_0:
-		case astore_1:
-		case astore_2:
-		case astore_3:
-			if(*thread->program_counter == istore_0 || *thread->program_counter == fstore_0 ||
-			*thread->program_counter == astore_0){
-				index = 0;
-			}else if(*thread->program_counter == istore_1 || *thread->program_counter == fstore_1 ||
-			 *thread->program_counter == astore_1){
-				index = 1;
-			}else if(*thread->program_counter == istore_2 || *thread->program_counter == fstore_2 ||
-			 *thread->program_counter == astore_2){
-				index = 2;
-			}else if(*thread->program_counter == istore_3 || *thread->program_counter == fstore_3 ||
-			 *thread->program_counter == astore_3){
-				index = 3;
-			}
-			// get value from operand_stack
-			value = popOperand(thread->jvm_stack);
-			
-			// store value into local variables
-			(thread->jvm_stack)->local_variables[index] = value;
-			break;
-		case lstore_0:
-		case lstore_1:
-		case lstore_2:
-		case lstore_3:
-		case dstore_0:
-		case dstore_1:
-		case dstore_2:
-		case dstore_3:
-			if(*thread->program_counter == lstore_0 || *thread->program_counter == dstore_0){
-				index = 0;
-			}else if(*thread->program_counter == lstore_1 || *thread->program_counter == dstore_1){
-				index = 1;
-			}else if(*thread->program_counter == lstore_2 || *thread->program_counter == dstore_2){
-				index = 2;
-			}else if(*thread->program_counter == lstore_3 || *thread->program_counter == dstore_3){
-				index = 3;
-			}
-			// get value from operand_stack
-			value = popOperand(thread->jvm_stack);			
-			// store value into local variables
-			(thread->jvm_stack)->local_variables[index] = value;
+    switch(*thread->program_counter)
+    {
+        case istore:
+        case fstore:
+        case astore:{
+            u2 index;
+            u4 value;
+            thread->program_counter++;
+            index = (u2) *(thread->program_counter);
+            // get value from operand_stack
+            value = popOperand(thread->jvm_stack);
+            // store value into local variables
+            (thread->jvm_stack)->local_variables[index] = value;
 
-			// get value from operand_stack
-			value = popOperand(thread->jvm_stack);
-			// store value into local variables
-			(thread->jvm_stack)->local_variables[index + 1] = value;
-			break;
-	}
-	thread->program_counter++;
+            thread->program_counter++;
+            break;
+        }
+        case lstore:
+        case dstore:{
+            u4 high, low;
+            u2 index;
+            u4 value;
+
+            thread->program_counter++;
+            index = (u2) *(thread->program_counter);
+            // get high and low from operand_stack
+            low = popOperand(thread->jvm_stack);
+            high = popOperand(thread->jvm_stack);
+            // store high and lowinto local variables
+            (thread->jvm_stack)->local_variables[index] = high;
+            (thread->jvm_stack)->local_variables[index + 1] = low;
+
+            thread->program_counter++;
+            break;
+        }
+        case istore_0:
+        case istore_1:
+        case istore_2:
+        case istore_3:
+        case fstore_0:
+        case fstore_1:
+        case fstore_2:
+        case fstore_3:
+        case astore_0:
+        case astore_1:
+        case astore_2:
+        case astore_3:{
+            u2 index;
+            u4 value;
+
+            if(*thread->program_counter == istore_0 || *thread->program_counter == fstore_0 || *thread->program_counter == astore_0){
+                index = 0;
+            }else if(*thread->program_counter == istore_1 || *thread->program_counter == fstore_1 || *thread->program_counter == astore_1){
+                index = 1;
+            }else if(*thread->program_counter == istore_2 || *thread->program_counter == fstore_2 || *thread->program_counter == astore_2){
+                index = 2;
+            }else if(*thread->program_counter == istore_3 || *thread->program_counter == fstore_3 || *thread->program_counter == astore_3){
+                index = 3;
+            }
+            // get value from operand_stack
+            value = popOperand(thread->jvm_stack);
+            // store value into local variables
+            (thread->jvm_stack)->local_variables[index] = value;
+
+            thread->program_counter++;
+            break;
+        }
+        case lstore_0:
+        case lstore_1:
+        case lstore_2:
+        case lstore_3:
+        case dstore_0:
+        case dstore_1:
+        case dstore_2:
+        case dstore_3:{
+            u4 high, low;
+            u2 index;
+            u4 value;
+
+            if(*thread->program_counter == lstore_0 || *thread->program_counter == dstore_0){
+                index = 0;
+            }else if(*thread->program_counter == lstore_1 || *thread->program_counter == dstore_1){
+                index = 1;
+            }else if(*thread->program_counter == lstore_2 || *thread->program_counter == dstore_2){
+                index = 2;
+            }else if(*thread->program_counter == lstore_3 || *thread->program_counter == dstore_3){
+                index = 3;
+            }
+            // get value from operand_stack
+            value = popOperand(thread->jvm_stack);
+            // store value into local variables
+            (thread->jvm_stack)->local_variables[index] = value;
+
+            // get value from operand_stack
+            value = popOperand(thread->jvm_stack);
+            // store value into local variables
+            (thread->jvm_stack)->local_variables[index + 1] = value;
+
+            thread->program_counter++;
+            break;
+        }
+    }
 }
 
 // Tastore	0x4F a 0x56
@@ -542,13 +594,13 @@ void	Tastore(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u4 index;
 	u4 value, value2;
 	ARRAY	* arrayref;
-	
+
 	// get value from operand_stack
 	value = popOperand(thread->jvm_stack);
 	if(*thread->program_counter == lastore || *thread->program_counter == dastore){
 		value2 = popOperand(thread->jvm_stack);
 	}
-		
+
 	// get index from operand_stack
 	index = popOperand(thread->jvm_stack);
 
@@ -600,7 +652,7 @@ void	handleStack(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.dup2_x1*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.dup2_x2*/
 	u4	value;
-	
+
 	u4 value1, value2, value3, value4;
 	switch(*thread->program_counter){
 		case pop:
@@ -710,7 +762,7 @@ void	Tadd(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			// Desempilha operandos
 			first_int = (s4) popOperand(thread->jvm_stack);
 			second_int = (s4) popOperand(thread->jvm_stack);
-			
+
 			// Empilha soma
 			total_int = first_int + second_int;
 			pushOperand(total_int, thread->jvm_stack);
@@ -725,11 +777,11 @@ void	Tadd(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			second_long = ((s8) high << 32) | low;
-			
+
 			total_long = first_long + second_long;
 			high = (u4) (total_long >> 32);
 			low = (u4) ((total_long << 32) >> 32);
-			
+
 			pushOperand(high, thread->jvm_stack);
 			pushOperand(low, thread->jvm_stack);
 			break;
@@ -738,10 +790,10 @@ void	Tadd(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			// Desempilha operandos
 			value = popOperand(thread->jvm_stack);
 			memcpy(&first_float, &value, sizeof(u4));
-			
+
 			value = popOperand(thread->jvm_stack);
 			memcpy(&second_float, &value, sizeof(u4));
-			
+
 			total_float = first_float + second_float;
 			memcpy(&value, &total_float, sizeof(u4));
 
@@ -753,12 +805,12 @@ void	Tadd(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			s4	sign1, sign2, sign_total;
 			s4	exponent1, exponent2, exponent_total;
 			s8	mantissa1, mantissa2, mantissa_total;
-			
+
 			// desempilha operandos
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			first_double = ((u8) high << 32) | low;
-			
+
 			sign1 = ((first_double >> 63) == 0) ? 1 : -1;
 			exponent1 = ((first_double >> 52) & 0x7ffL);
 			mantissa1 = (exponent1 == 0) ?
@@ -768,7 +820,7 @@ void	Tadd(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			second_double = ((u8) high << 32) | low;
-			
+
 			sign2 = ((second_double >> 63) == 0) ? 1 : -1;
 			exponent2 = ((second_double >> 52) & 0x7ffL);
 			mantissa2 = (exponent2 == 0) ?
@@ -805,14 +857,14 @@ void	Tsub(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			// Desempilha operandos
 			first_int = (s4) popOperand(thread->jvm_stack);
 			second_int = (s4) popOperand(thread->jvm_stack);
-			
+
 			// Empilha diferenca
 			total_int = first_int - second_int;
 			pushOperand(total_int, thread->jvm_stack);
 			break;
 		case lsub:;
 			s8	first_long, second_long, total_long;
-			
+
 			// desempilha operandos
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
@@ -821,12 +873,12 @@ void	Tsub(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			second_long = ((s8) high << 32) | low;
-			
+
 			total_long = first_long - second_long;
 			high = (u4) (total_long >> 32);
 			low = (u4) ((total_long << 32) >> 32);
-			
-			
+
+
 			pushOperand(high, thread->jvm_stack);
 			pushOperand(low, thread->jvm_stack);
 			break;
@@ -835,10 +887,10 @@ void	Tsub(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			// Desempilha operandos
 			value = popOperand(thread->jvm_stack);
 			memcpy(&first_float, &value, sizeof(u4));
-			
+
 			value = popOperand(thread->jvm_stack);
 			memcpy(&second_float, &value, sizeof(u4));
-			
+
 			// Empilha diferenca
 			total_float = first_float - second_float;
 			memcpy(&value, &total_float, sizeof(u4));
@@ -849,12 +901,12 @@ void	Tsub(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			s4	sign1, sign2, sign_total;
 			s4	exponent1, exponent2, exponent_total;
 			s8	mantissa1, mantissa2, mantissa_total;
-			
+
 			// desempilha operandos
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			first_double = ((u8) high << 32) | low;
-			
+
 			sign1 = ((first_double >> 63) == 0) ? 1 : -1;
 			exponent1 = ((first_double >> 52) & 0x7ffL);
 			mantissa1 = (exponent1 == 0) ?
@@ -864,7 +916,7 @@ void	Tsub(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			second_double = ((u8) high << 32) | low;
-			
+
 			sign2 = ((second_double >> 63) == 0) ? 1 : -1;
 			exponent2 = ((second_double >> 52) & 0x7ffL);
 			mantissa2 = (exponent2 == 0) ?
@@ -908,14 +960,14 @@ void	Tmul(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			// Desempilha operandos
 			first_int = (s4) popOperand(thread->jvm_stack);
 			second_int = (s4) popOperand(thread->jvm_stack);
-			
+
 			// Empilha produto
 			total_int = first_int * second_int;
 			pushOperand(total_int, thread->jvm_stack);
 			break;
 		case lmul:;
 			s8	first_long, second_long, total_long;
-			
+
 			// desempilha operandos
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
@@ -924,11 +976,11 @@ void	Tmul(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			second_long = ((s8) high << 32) | low;
-			
+
 			total_long = first_long * second_long;
 			high = (u4) (total_long >> 32);
 			low = (u4) ((total_long << 32) >> 32);
-			
+
 			pushOperand(high, thread->jvm_stack);
 			pushOperand(low, thread->jvm_stack);
 			break;
@@ -937,10 +989,10 @@ void	Tmul(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			// Desempilha operandos
 			value = popOperand(thread->jvm_stack);
 			memcpy(&first_float, &value, sizeof(u4));
-			
+
 			value = popOperand(thread->jvm_stack);
 			memcpy(&second_float, &value, sizeof(u4));
-			
+
 			total_float = first_float * second_float;
 			memcpy(&value, &total_float, sizeof(u4));
 
@@ -952,12 +1004,12 @@ void	Tmul(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			s4	sign1, sign2, sign_total;
 			s4	exponent1, exponent2, exponent_total;
 			s8	mantissa1, mantissa2, mantissa_total;
-			
+
 			// desempilha operandos
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			first_double = ((u8) high << 32) | low;
-			
+
 			sign1 = ((first_double >> 63) == 0) ? 1 : -1;
 			exponent1 = ((first_double >> 52) & 0x7ffL);
 			mantissa1 = (exponent1 == 0) ?
@@ -967,7 +1019,7 @@ void	Tmul(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			second_double = ((u8) high << 32) | low;
-			
+
 			sign2 = ((second_double >> 63) == 0) ? 1 : -1;
 			exponent2 = ((second_double >> 52) & 0x7ffL);
 			mantissa2 = (exponent2 == 0) ?
@@ -1002,7 +1054,7 @@ void	Tdiv(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			// Desempilha operandos
 			first_int = (s4) popOperand(thread->jvm_stack);
 			second_int = (s4) popOperand(thread->jvm_stack);
-			
+
 			// Empilha produto
 			total_int = first_int * second_int;
 			pushOperand(total_int, thread->jvm_stack);
@@ -1017,11 +1069,11 @@ void	Tdiv(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			second_long = ((s8) high << 32) | low;
-			
+
 			total_long = first_long - second_long;
 			high = (u4) (total_long >> 32);
 			low = (u4) ((total_long << 32) >> 32);
-			
+
 			pushOperand(high, thread->jvm_stack);
 			pushOperand(low, thread->jvm_stack);
 			break;
@@ -1030,10 +1082,10 @@ void	Tdiv(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			// Desempilha operandos
 			value = popOperand(thread->jvm_stack);
 			memcpy(&first_float, &value, sizeof(u4));
-			
+
 			value = popOperand(thread->jvm_stack);
 			memcpy(&second_float, &value, sizeof(u4));
-			
+
 			total_float = first_float * second_float;
 			memcpy(&value, &total_float, sizeof(u4));
 
@@ -1045,12 +1097,12 @@ void	Tdiv(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			s4	sign1, sign2, sign_total;
 			s4	exponent1, exponent2, exponent_total;
 			s8	mantissa1, mantissa2, mantissa_total;
-			
+
 			// desempilha operandos
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			first_double = ((u8) high << 32) | low;
-			
+
 			sign1 = ((first_double >> 63) == 0) ? 1 : -1;
 			exponent1 = ((first_double >> 52) & 0x7ffL);
 			mantissa1 = (exponent1 == 0) ?
@@ -1060,7 +1112,7 @@ void	Tdiv(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 			second_double = ((u8) high << 32) | low;
-			
+
 			sign2 = ((second_double >> 63) == 0) ? 1 : -1;
 			exponent2 = ((second_double >> 52) & 0x7ffL);
 			mantissa2 = (exponent2 == 0) ?
@@ -1100,13 +1152,13 @@ void	Tneg(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lneg*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.fneg*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.dneg*/
-	switch(*thread->program_counter){
-		case ineg:{
-			s4 value;
-			// get value from operand_stack
-			value = (s1) popOperand(thread->jvm_stack);
-			value = -value;
-			//push value
+    switch(*thread->program_counter){
+        case ineg:{
+            s4 value;
+            // get value from operand_stack
+            value = (s4) popOperand(thread->jvm_stack);
+            value = -value;
+            //push value
 			pushOperand( (u4)value, thread->jvm_stack);
 
 			thread->program_counter++;
@@ -1137,52 +1189,28 @@ void	Tneg(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			float float_value;
 			u4 value;
 
-			value = popOperand(thread->jvm_stack);
-			//copy bits from value into float_value
-			memcpy(&float_value, &value, sizeof(u4));
-			float_value = -float_value;
-			//copy bits from float_value into value
-			memcpy(&value, &float_value, sizeof(u4));
+            value = popOperand(thread->jvm_stack);
+            float_value = (float) value;
+
+            float_value = -float_value;
+            //copy bits from float_value into value
+            memcpy(&value, &float_value, sizeof(u4));
 
 			pushOperand(value, thread->jvm_stack);
 
-			thread->program_counter++;
-			break;
-		}
-		case dneg:{
-			u8 double_value;
-			s8 value;
-			u4 high, low;
+            thread->program_counter++;
+            break;
+        }
+        case dneg:{
+            u8 double_value;
+            u8 mask = 1;
+            u4 high, low;
 
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 
-			value = (((s8) high) << 32) + low;
-				switch(value){
-					case 0x7ff0000000000000L:
-						//printf("\n\t\tDouble:\t\t\t+∞\n\n");
-						break;
-					case 0xfff0000000000000L:
-						//printf("\n\t\tDouble:\t\t\t-∞\n\n");
-						break;
-					default:
-					if((value >= 0x7ff0000000000001L && value <= 0x7ffffffffffffL) ||
-					(value >= 0xfff0000000000001L && value <= 0xffffffffffffffffL )){
-						//printf("\n\t\tDouble:\t\t\tNaN\n\n");
-					}
-					else{
-						s4 s = ((value >> 63) == 0) ? 1 : -1;
-						s4 e = ((value >> 52) & 0x7ffL);
-						s8 m = (e == 0) ?
-						(value & 0xfffffffffffffL) << 1 :
-						(value & 0xfffffffffffffL) | 0x10000000000000L;
-						value = -s*m*pow(2, (e-1075));
-						//printf("\n\t\tDouble:\t\t\t%f\n\n", (double) s*m*pow(2, (e-1075)));
-					}
-				}
-
-			//copy bits from value into double_value
-			memcpy(&double_value, &value, sizeof(u8));
+            double_value = (((u8) high) << 32) + low;
+            double_value |= (mask << 63);
 
 			high = double_value >> 32;
 			low = double_value & 0xffffffff;
@@ -1203,7 +1231,7 @@ void	Tshl(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lshl*/
 	int32_t operand1, operand2, auxiliar2;
 	int64_t auxiliar1;
-	u4 auxU4, aux2U4; 
+	u4 auxU4, aux2U4;
 
 	switch(*thread->program_counter) {
 		case ishl:
@@ -1270,6 +1298,33 @@ void	Tshr(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	Tushr(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.iushr*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lushr*/
+	int32_t operand1, operand2;
+	int64_t auxiliar1, auxiliar2;
+	u4 auxU4, aux2U4;
+ 
+	switch(*thread->program_counter) {
+		case iushr:
+			operand2 = (int32_t) popOperand(thread->jvm_stack);
+			operand1 = (int32_t) popOperand(thread->jvm_stack);
+			operand2 = operand2 & 0x1f;
+			pushOperand((operand1 >> operand2),thread->jvm_stack);
+			thread->program_counter++;
+		break;
+		case lushr:
+			aux2U4 = popOperand(thread->jvm_stack);
+			auxiliar2 = popOperand(thread->jvm_stack);
+			auxiliar1 = popOperand(thread->jvm_stack);
+			auxiliar1 = auxiliar1 << 32;
+			auxiliar1 |= auxiliar2;
+			aux2U4 = aux2U4 & 0x3f;
+			auxiliar1 = auxiliar1 >> aux2U4;
+			auxU4 = auxiliar1 >> 32;
+			pushOperand(auxU4, thread->jvm_stack);
+			auxU4 = auxiliar1 & 0xffffffff;
+			pushOperand(auxU4, thread->jvm_stack);
+			thread->program_counter++;
+		break;
+	}
 }
 
 
@@ -1279,9 +1334,10 @@ void	Tand(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		u4 value,aux1,aux2;
 		int32_t first_operand, second_operand, result;
 		int64_t oper1,oper2;
+
 	OPERAND	* operand = (OPERAND *) malloc(sizeof(OPERAND));
 	switch(*thread->program_counter) {
-	
+
 		// INSTRUÇÃO IAND
 		case iand:
 			// Desempilha operando
@@ -1295,7 +1351,7 @@ void	Tand(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		pushOperand(result, thread->jvm_stack);
 			thread->program_counter++;
 			break;
-		
+
 		//Intrução LAND
 		case land:
 
@@ -1309,11 +1365,11 @@ void	Tand(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 
 			oper1 = oper1 << 32;
 			oper1 |= aux1;
-			
+
 		//Desempilha aux2
 		popOperand(thread->jvm_stack);
 			aux2 = (signed)(int32_t) value;
-			
+
 		//Desempilha oper2
 		popOperand(thread->jvm_stack);
 			oper2 = (signed)(int32_t) value;
@@ -1322,8 +1378,8 @@ void	Tand(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			oper2 |= aux2;
 			oper1 = oper2 &= oper1;
 			aux1 = oper1 >> 32;
-		
-		//Empilha aux1	
+
+		//Empilha aux1
 			pushOperand(aux1, thread->jvm_stack);
 
 			aux1 = oper1 & 0xffffffff;
@@ -1340,6 +1396,34 @@ void	Tand(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	Tor(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ior*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lor*/
+	switch(*thread->program_counter) {
+		case ior:;
+			u4	first_op, second_op;
+
+			first_op = popOperand(thread->jvm_stack);
+			second_op = popOperand(thread->jvm_stack);
+			pushOperand((first_op | second_op), thread->jvm_stack);
+			break;
+		case lor:;
+			u4 result, aux;
+			s8 first_l, second_l;
+
+			aux = popOperand(thread->jvm_stack);
+			first_l = popOperand(thread->jvm_stack);
+			first_l = first_l << 32;
+			first_l |= aux;
+			aux = popOperand(thread->jvm_stack);
+			second_l = popOperand(thread->jvm_stack);
+			second_l = second_l << 32;
+			second_l |= aux;
+			first_l = first_l | second_op;
+			result = first_l >> 32;
+			pushOperand(result, thread->jvm_stack);
+			result = first_l & 0xffffffff;
+			pushOperand(result, thread->jvm_stack);
+			break;
+	}
+	thread->program_counter++;
 }
 
 // Txor		0x82 e 0x83
@@ -1347,6 +1431,34 @@ void	Tor(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	Txor(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ixor*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lxor*/
+	switch(*thread->program_counter) {
+		case ior:;
+			u4	first_op, second_op;
+
+			first_op = popOperand(thread->jvm_stack);
+			second_op = popOperand(thread->jvm_stack);
+			pushOperand((first_op ^ second_op), thread->jvm_stack);
+			break;
+		case lor:;
+			u4 result, aux;
+			s8 first_l, second_l;
+
+			aux = popOperand(thread->jvm_stack);
+			first_l = popOperand(thread->jvm_stack);
+			first_l = first_l << 32;
+			first_l |= aux;
+			aux = popOperand(thread->jvm_stack);
+			second_l = popOperand(thread->jvm_stack);
+			second_l = second_l << 32;
+			second_l |= aux;
+			first_l = first_l ^ second_op;
+			result = first_l >> 32;
+			pushOperand(result, thread->jvm_stack);
+			result = first_l & 0xffffffff;
+			pushOperand(result, thread->jvm_stack);
+			break;
+	}
+	thread->program_counter++;
 }
 
 /*	INCREMENTO	*/
@@ -1398,51 +1510,33 @@ void	i2T(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			float float_value;
 			u4 value;
 
-			value = popOperand(thread->jvm_stack);
-			//copy bits from value into float_value
-			memcpy(&float_value, &value, sizeof(u4));
-			//copy bits from float_value into value
-			memcpy(&value, &float_value, sizeof(u4));
+            value = popOperand(thread->jvm_stack);
+            float_value = (float) value;
+            //copy bits from float_value into value
+            memcpy(&value, &float_value, sizeof(u4));
 
 			pushOperand(value, thread->jvm_stack);
 
-			thread->program_counter++;
-			break;
-		}
-		case i2d:{
+            thread->program_counter++;
+            break;
+        }
+        case i2d:{
+            u8 double_value = 0;
+            u4 value,high, low, bits;
+            float float_value;
 
-			u8 double_value;
-			s8 value = 0;
-			u4 high, low;
+            value = popOperand(thread->jvm_stack);
 
-			low = popOperand(thread->jvm_stack);
+            float_value = (float) value;
 
-			value += low;
-				switch(value){
-					case 0x7ff0000000000000L:
-						//printf("\n\t\tDouble:\t\t\t+∞\n\n");
-						break;
-					case 0xfff0000000000000L:
-						//printf("\n\t\tDouble:\t\t\t-∞\n\n");
-						break;
-					default:
-					if((value >= 0x7ff0000000000001L && value <= 0x7ffffffffffffL) ||
-					(value >= 0xfff0000000000001L && value <= 0xffffffffffffffffL )){
-						//printf("\n\t\tDouble:\t\t\tNaN\n\n");
-					}
-					else{
-						s4 s = ((value >> 63) == 0) ? 1 : -1;
-						s4 e = ((value >> 52) & 0x7ffL);
-						s8 m = (e == 0) ?
-						(value & 0xfffffffffffffL) << 1 :
-						(value & 0xfffffffffffffL) | 0x10000000000000L;
-						value = -s*m*pow(2, (e-1075));
-						//printf("\n\t\tDouble:\t\t\t%f\n\n", (double) s*m*pow(2, (e-1075)));
-					}
-				}
+            memcpy(&bits, &float_value, sizeof(u4));
+            s4 s = ((bits >> 31) == 0) ? 1 : -1;
+            s4 e = ((bits >> 23) & 0xff);
+            s4 m = (e == 0) ? (bits & 0x7fffff) << 1 : (bits & 0x7fffff) | 0x800000;
 
-			//copy bits from value into double_value
-			memcpy(&double_value, &value, sizeof(u8));
+            s4 exp = 1023 + (e - 127);
+
+            double_value = ((double_value + s) << 63) + ((double_value + exp) << 52) + ((double_value + m) << 29);
 
 			high = double_value >> 32;
 			low = double_value & 0xffffffff;
@@ -1490,99 +1584,60 @@ void	l2T(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 
 			pushOperand(low, thread->jvm_stack);
 
-			thread->program_counter++;
-			break;
-		}
-		case l2f:{
-			u8 double_value;
-			s8 value;
-			u4 high, low, aux;
-			float float_value;
+            thread->program_counter++;
+            break;
+        }
+        case l2f:{
+            u8 long_value;
+            s8 value;
+            u4 high, low, aux;
+            float float_value;
 
 			low = popOperand(thread->jvm_stack);
 			high = popOperand(thread->jvm_stack);
 
-			value = (((s8) high) << 32) + low;
-				switch(value){
-					case 0x7ff0000000000000L:
-						//printf("\n\t\tDouble:\t\t\t+∞\n\n");
-						break;
-					case 0xfff0000000000000L:
-						//printf("\n\t\tDouble:\t\t\t-∞\n\n");
-						break;
-					default:
-					if((value >= 0x7ff0000000000001L && value <= 0x7ffffffffffffL) ||
-					(value >= 0xfff0000000000001L && value <= 0xffffffffffffffffL )){
-						//printf("\n\t\tDouble:\t\t\tNaN\n\n");
-					}
-					else{
-						s4 s = ((value >> 63) == 0) ? 1 : -1;
-						s4 e = ((value >> 52) & 0x7ffL);
-						s8 m = (e == 0) ?
-						(value & 0xfffffffffffffL) << 1 :
-						(value & 0xfffffffffffffL) | 0x10000000000000L;
-						value = -s*m*pow(2, (e-1075));
-						//printf("\n\t\tDouble:\t\t\t%f\n\n", (double) s*m*pow(2, (e-1075)));
-					}
-				}
-
-			//copy bits from value into double_value
-			memcpy(&double_value, &value, sizeof(u8));
-
-			float_value = (float) double_value;
+            value = (((s8) high) << 32) + low;
+            long_value = (u8) value;
+            float_value = (float) long_value;
 
 			memcpy(&aux, &float_value, sizeof(u4));
 
 			pushOperand(aux, thread->jvm_stack);
 
-			thread->program_counter++;
-			break;
-		}
-		case l2d:{
-			u8 double_value;
-			s8 value;
-			u4 high, low;
+            thread->program_counter++;
+            break;
+        }
+        case l2d:{
+            u8 double_value = 0;
+            u8 value;
+            u4 high, low, bits;
+            float float_value;
 
-			low = popOperand(thread->jvm_stack);
-			high = popOperand(thread->jvm_stack);
+            low = popOperand(thread->jvm_stack);
+            high = popOperand(thread->jvm_stack);
 
-			value = (((s8) high) << 32) + low;
-				switch(value){
-					case 0x7ff0000000000000L:
-						//printf("\n\t\tDouble:\t\t\t+∞\n\n");
-						break;
-					case 0xfff0000000000000L:
-						//printf("\n\t\tDouble:\t\t\t-∞\n\n");
-						break;
-					default:
-					if((value >= 0x7ff0000000000001L && value <= 0x7ffffffffffffL) ||
-					(value >= 0xfff0000000000001L && value <= 0xffffffffffffffffL )){
-						//printf("\n\t\tDouble:\t\t\tNaN\n\n");
-					}
-					else{
-						s4 s = ((value >> 63) == 0) ? 1 : -1;
-						s4 e = ((value >> 52) & 0x7ffL);
-						s8 m = (e == 0) ?
-						(value & 0xfffffffffffffL) << 1 :
-						(value & 0xfffffffffffffL) | 0x10000000000000L;
-						value = -s*m*pow(2, (e-1075));
-						//printf("\n\t\tDouble:\t\t\t%f\n\n", (double) s*m*pow(2, (e-1075)));
-					}
-				}
+            value = ((u8)(high) << 32) + low;
+			float_value = (float) value;
 
-			//copy bits from value into double_value
-			memcpy(&double_value, &value, sizeof(u8));
+            memcpy(&bits, &float_value, sizeof(u4));
+            s4 s = ((bits >> 31) == 0) ? 1 : -1;
+            s4 e = ((bits >> 23) & 0xff);
+            s4 m = (e == 0) ? (bits & 0x7fffff) << 1 : (bits & 0x7fffff) | 0x800000;
 
-			high = double_value >> 32;
-			low = double_value & 0xffffffff;
+            s4 exp = 1023 + (e - 127);
 
-			pushOperand(high, thread->jvm_stack);
-			pushOperand(low, thread->jvm_stack);
+            double_value = ((double_value + s) << 63) + ((double_value + exp) << 52) + ((double_value + m) << 29);
 
-			thread->program_counter++;
-			break;
-		}
-	}
+            high = double_value >> 32;
+            low = double_value & 0xffffffff;
+
+            pushOperand(high, thread->jvm_stack);
+            pushOperand(low, thread->jvm_stack);
+
+            thread->program_counter++;
+            break;
+        }
+    }
 }
 
 // f2T		0x8B a 0x8D
@@ -1666,10 +1721,10 @@ switch(*thread->program_counter)
             s4 s, e;
             s8 m;
 
-            low = popOperand(thread->jvm_stack);
-            high = popOperand(thread->jvm_stack);
+			low = popOperand(thread->jvm_stack);
+			high = popOperand(thread->jvm_stack);
 
-            value = (((s8) high) << 32) + low;
+			value = (((s8) high) << 32) + low;
 				switch(value){
 					case 0x7ff0000000000000L:
 						//printf("\n\t\tDouble:\t\t\t+∞\n\n");
@@ -1716,6 +1771,7 @@ switch(*thread->program_counter)
 
                 pushOperand(value, thread->jvm_stack);
             }
+            thread->program_counter++;
             break;
         }
     }
@@ -1727,6 +1783,32 @@ switch(*thread->program_counter)
 //	comparação tipo integral (long)
 void	Tcmp(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.lcmp*/
+    u8 value1, value2;
+    u4 high, low;
+    s4 result;
+
+    low = popOperand(thread->jvm_stack);
+    high = popOperand(thread->jvm_stack);
+
+    value1 = (((u8) high) << 32) + low;
+
+    low = popOperand(thread->jvm_stack);
+    high = popOperand(thread->jvm_stack);
+
+    value2 = (((u8) high) << 32) + low;
+
+	if ( value1 == value2 ){
+        result = 0;
+	}else if ( value1 > value2 ){
+        result = 1;
+	}
+	else{
+        result = -1;
+	}
+
+	pushOperand(result, thread->jvm_stack);
+
+	thread->program_counter++;
 }
 
 // TcmpOP	0x95 a 0x98
@@ -1747,6 +1829,61 @@ void	ifOP(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ifge*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ifgt*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ifle*/
+    switch(*thread->program_counter)
+    {
+        case ifeq:
+        case ifne:
+        case iflt:
+        case ifge:
+        case ifgt:
+        case ifle:{
+            u1	branchbyte1 = * (thread->program_counter + 1);
+            u1	branchbyte2 = * (thread->program_counter + 2);
+            s2	branch = (branchbyte1 << 8) | branchbyte2;
+
+            s4 value = (s4)popOperand(thread->jvm_stack);
+
+            if(*thread->program_counter == ifeq){
+                if(value == 0){
+                    thread->program_counter += branch;
+                }else{
+                    thread->program_counter += 3;
+                }
+            }else if(*thread->program_counter == ifne){
+                if(value != 0){
+                    thread->program_counter += branch;
+                }else{
+                    thread->program_counter += 3;
+                }
+            }else if(*thread->program_counter == iflt){
+                if(value < 0){
+                    thread->program_counter += branch;
+                }else{
+                    thread->program_counter += 3;
+                }
+            }else if(*thread->program_counter == ifge){
+                if(value >= 0){
+                    thread->program_counter += branch;
+                }else{
+                    thread->program_counter += 3;
+                }
+            }else if(*thread->program_counter == ifgt){
+                if(value > 0){
+                    thread->program_counter += branch;
+                }else{
+                    thread->program_counter += 3;
+                }
+            }else if(*thread->program_counter == ifle){
+                if(value <= 0){
+                    thread->program_counter += branch;
+                }else{
+                    thread->program_counter += 3;
+                }
+            }
+
+            break;
+        }
+    }
 }
 
 // if_icmOP	0x9F a 0xA4
@@ -1762,19 +1899,57 @@ void	if_icmOP(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u1	branchbyte2 = * (thread->program_counter + 2);
 	s2	branch = (branchbyte1 << 8) | branchbyte2;
 
+	#ifdef	DEBUG
 	printf("\t%" PRId16 "\t(%+" PRId16 ")", (u2) (thread->program_counter - method->bytecodes) + branch, branch);
-	u4	value2	= popOperand(thread->jvm_stack);
-	u4	value1	= popOperand(thread->jvm_stack);
+	#endif
+
+	s4	value2	= (s4) popOperand(thread->jvm_stack);
+	s4	value1	= (s4) popOperand(thread->jvm_stack);
 
 	switch(* thread->program_counter){
-		case	if_icmpge:
-			if(value1 >= value2){
-				thread->program_counter += (branch - 3);
+		case	if_icmpeq:
+			if(value1 == value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
 			}
 			break;
-
+        case	if_icmpne:
+			if(value1 != value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
+			}
+			break;
+        case	if_icmplt:
+			if(value1 < value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
+			}
+			break;
+		case	if_icmpge:
+			if(value1 >= value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
+			}
+			break;
+        case	if_icmpgt:
+			if(value1 > value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
+			}
+			break;
+        case	if_icmple:
+			if(value1 <= value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
+			}
+			break;
 	}
-	thread->program_counter += 3;
 }
 
 // if_acmOP	0xA5 e 0xA6
@@ -1782,6 +1957,33 @@ void	if_icmOP(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	if_acmOP(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.if_acmpeq*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.if_acmpne*/
+    u1	branchbyte1 = * (thread->program_counter + 1);
+	u1	branchbyte2 = * (thread->program_counter + 2);
+	s2	branch = (branchbyte1 << 8) | branchbyte2;
+
+	#ifdef	DEBUG
+	printf("\t%" PRId16 "\t(%+" PRId16 ")", (u2) (thread->program_counter - method->bytecodes) + branch, branch);
+	#endif
+	
+	s4	value2	= (s4) popOperand(thread->jvm_stack);
+	s4	value1	= (s4) popOperand(thread->jvm_stack);
+
+	switch(* thread->program_counter){
+		case	if_acmpeq:
+			if(value1 == value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
+			}
+			break;
+        case	if_acmpne:
+			if(value1 != value2){
+				thread->program_counter += branch;
+			}else{
+                thread->program_counter += 3;
+			}
+			break;
+	}
 }
 
 // jump		0xA7 a 0xA9
@@ -1790,7 +1992,32 @@ void	jump(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.goto*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.jsr*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ret*/
-	thread->program_counter += 3;
+    u1	branchbyte1 = * (thread->program_counter + 1);
+	u1	branchbyte2 = * (thread->program_counter + 2);
+	s2	branch = (branchbyte1 << 8) | branchbyte2;
+
+	switch(* thread->program_counter){
+		case	goto_:
+            thread->program_counter += branch;
+			break;
+        case	jsr:
+            pushOperand((u4)(thread->program_counter += 3), thread->jvm_stack);
+            thread->program_counter += branch;
+			break;
+        case	ret:{
+            thread->program_counter++;
+            u2 index = (u2)*(thread->program_counter);
+
+            if (isWide == 1){
+                thread->program_counter++;
+                index = (index << 8) | *(thread->program_counter);
+                isWide = 0;
+            }
+
+            *thread->program_counter = (thread->jvm_stack)->local_variables[index];
+			break;
+        }
+	}
 }
 
 // switch_	0xAA e 0xAB
@@ -1840,7 +2067,11 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u1	indexbyte1 = *(thread->program_counter + 1);
 	u1	indexbyte2 = *(thread->program_counter + 2);
 	u2	index = (indexbyte1 << 8) | indexbyte2;
+	
+	#ifdef	DEBUG
 	printf("\t#%" PRIu16, index);
+	#endif
+	
 	// RESOLUÇÃO DO FIELD
 		// Nome da classe do field
 	cp_info	* cp_aux = (thread->jvm_stack)->current_constant_pool;
@@ -1864,24 +2095,32 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	cp_info * cp_field_descriptor = (thread->jvm_stack)->current_constant_pool + cp_aux->u.NameAndType.descriptor_index - 1;
 	char	* field_descriptor = cp_field_descriptor->u.Utf8.bytes;
 	field_descriptor[cp_field_descriptor->u.Utf8.length] = '\0';
-	
+
+	#ifdef	DEBUG
 	printf("\t<%s.%s>", class_name, field_name);
+	#endif
+	
 	// CONTROLE DE ACESSO
 	u1	* backupPC = thread->program_counter;
 	CLASS_DATA	* field_class = getClass(cp_class_name, jvm);
 	if(!field_class){// se a classe do field não foi carregada
-		puts("\n");
 		
+		#ifdef	DEBUG
+		puts("\n");
+		#endif
+
 		char	* string = malloc((strlen(class_name) + 7) * sizeof(CHAR));
 		strcpy(string, class_name);
 		strcat(string, ".class");
-		
-		
+
+
 		classLoading(string, &field_class, method->class_data, jvm);
 		free(string);
 		classLinking(field_class, jvm);
 		classInitialization(field_class, jvm, thread);
 		thread->program_counter = backupPC;
+		
+		#ifdef	DEBUG
 		puts("\n=======================");
 		printf("Resume\t");
 		PrintConstantUtf8((method->class_data)->class_name, stdout);
@@ -1889,6 +2128,8 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		method_name[(method->method_name)->u.Utf8.length] = '\0';
 		printf(".%s\n", method_name);
 		puts("=======================");
+		#endif
+		
 	}
 	else{
 		if(field_class != method->class_data){// Se o Field não for da mesma classe
@@ -1900,7 +2141,7 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			}
 		}
 	}
-	
+
 	VARIABLE	* var;
 	switch(* thread->program_counter){
 		case	getstatic:;
@@ -1909,55 +2150,46 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("NoSuchFieldError");
 				exit(EXIT_FAILURE);
 			}
-			OPERAND	* operand = (OPERAND *) malloc(sizeof(OPERAND));
 			switch((var->value).type){
 				case	BYTE:
-					operand->value = (s4) (var->value).u.Byte.byte;
+					pushOperand((s4) (var->value).u.Byte.byte, thread->jvm_stack);
 					break;
 				case	CHAR:
-					operand->value = (u4) (var->value).u.Char.char_;
+					pushOperand((u4) (var->value).u.Char.char_, thread->jvm_stack);
 					break;
 				case	FLOAT:
-					operand->value = (u4) (var->value).u.Float.float_;
+					pushOperand((u4) (var->value).u.Float.float_, thread->jvm_stack);
 					break;
 				case	INT:
-					operand->value = (s4) (var->value).u.Integer.integer;
+					pushOperand((s4) (var->value).u.Integer.integer, thread->jvm_stack);
 					break;
 				case	REF_INST:
-					operand->value = (u4) (var->value).u.ArrayReference.reference;
+					pushOperand((u4) (var->value).u.ArrayReference.reference, thread->jvm_stack);
 					break;
 				case	SHORT:
-					operand->value = (s4) (var->value).u.Short.short_;
+					pushOperand((s4) (var->value).u.Short.short_, thread->jvm_stack);
 					break;
 				case	BOOLEAN:
-					operand->value = (u4) (var->value).u.Boolean.boolean;
+					pushOperand((u4) (var->value).u.Boolean.boolean, thread->jvm_stack);
 					break;
 				case	REF_ARRAY:
-					operand->value = (u4) (var->value).u.InstanceReference.reference;
+					pushOperand((u4) (var->value).u.InstanceReference.reference, thread->jvm_stack);
 					break;
 				case	DOUBLE:
 				case	LONG:;
-					OPERAND	* operand2 = (OPERAND *) malloc(sizeof(OPERAND));
 					if((var->value).type == DOUBLE){
-						operand2->value = (u4) (var->value).u.Double.high_bytes;
-						operand->value = (u4) (var->value).u.Double.low_bytes;
+						pushOperand((u4) (var->value).u.Double.high_bytes, thread->jvm_stack);
+						pushOperand((u4) (var->value).u.Double.low_bytes, thread->jvm_stack);
 					}
 					else{
-						operand2->value = (u4) (var->value).u.Long.high_bytes;
-						operand->value = (u4) (var->value).u.Long.low_bytes;
+						pushOperand((u4) (var->value).u.Long.high_bytes, thread->jvm_stack);
+						pushOperand((u4) (var->value).u.Long.low_bytes, thread->jvm_stack);
 					}
-					operand2->prox = (thread->jvm_stack)->operand_stack;
-					(thread->jvm_stack)->operand_stack = operand;
-/*					printf("value = %" PRIu32 "\n", ((thread->jvm_stack)->operand_stack)->value);*/
 					break;
 				default:
 					puts("VerifyError: descritor de field inválido");
 					exit(EXIT_FAILURE);
 			}
-
-			operand->prox = (thread->jvm_stack)->operand_stack;
-			(thread->jvm_stack)->operand_stack = operand;
-/*			printf("value = %" PRIu32 "\n", ((thread->jvm_stack)->operand_stack)->value);*/
 			break;
 		case	putstatic:
 			var = getClassVariable(cp_field_name, field_class);
@@ -2050,7 +2282,7 @@ void	accessField(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			if(!objectref){
 				puts("NullPointerException");
 				exit(EXIT_FAILURE);
-			}			
+			}
 			var = getInstanceVariable(cp_field_name, objectref);
 			if(!var){
 				puts("NoSuchFieldError");
@@ -2075,7 +2307,11 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	u1	indexbyte1 = *(thread->program_counter + 1);
 	u1	indexbyte2 = *(thread->program_counter + 2);
 	u2	index = (indexbyte1 << 8) | indexbyte2;
+	
+	#ifdef	DEBUG
 	printf("\t#%" PRIu16, index);
+	#endif
+	
 /*	https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-5.html#jvms-5.4.3.3*/
 	// RESOLUÇÃO DO MÈTODO
 
@@ -2094,7 +2330,9 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	char	* method_name = cp_method_name->u.Utf8.bytes;
 	method_name[cp_method_name->u.Utf8.length] = '\0';
 
+	#ifdef	DEBUG
 	printf("\t<%s.%s>\n", class_name, method_name);
+	#endif
 
 	// descritor do método
 	cp_info	* cp_method_descriptor = cp + cp_name_and_type->u.NameAndType.descriptor_index - 1;
@@ -2107,7 +2345,9 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 	CLASS_DATA	* method_class = getClass(cp_class_name, jvm);
 	if(!method_class){// se a classe do método não foi carregada, mesmo package
 
+		#ifdef	DEBUG
 		puts("");
+		#endif
 
 		char	* string = malloc((strlen(class_name) + 7) * sizeof(CHAR));
 		strcpy(string, class_name);
@@ -2118,6 +2358,8 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		classLinking(method_class, jvm);
 		classInitialization(method_class, jvm, thread);
 		thread->program_counter = backupPC;
+		
+		#ifdef	DEBUG
 		puts("=======================");
 		printf("Resume\t");
 		PrintConstantUtf8((method->class_data)->class_name, stdout);
@@ -2125,24 +2367,25 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 		current_method_name[(method->method_name)->u.Utf8.length] = '\0';
 		printf(".%s\n", current_method_name);
 		puts("=======================");
+		#endif
 	}
 	bool	is_print = false;
 	bool	is_append = false;
 	bool	is_toString = false;
 
 	METHOD_DATA	* invoked_method = getMethod(method_name, method_descriptor, method_class);
-	
+
 	if(!invoked_method){
 		puts("AbstractMethodError: método não encontrado");
 		exit(EXIT_FAILURE);
 	}
-	
+
 	if(invoked_method->modifiers & ACC_ABSTRACT){
 		puts("AbstractMethodError: método abstrato");
 		exit(EXIT_FAILURE);
 	}
-	
-	
+
+
 	if(!(invoked_method->modifiers & ACC_PUBLIC)){// SE O MÉTODO NÃO É PUBLICO
 		if(invoked_method->modifiers & ACC_PROTECTED){ // SE O MÉTODO É PROTECTED
 			if(method->class_data != method_class){ // Se a classe do método invokado é diferente da classe método corrente
@@ -2184,7 +2427,6 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				is_print = true;
 			}
 			if(is_print){
-				printf("\nSaída:\t");
 				switch(method_descriptor[1]){
 					case	BOOLEAN:;
 						u1	boolean_ = (u1) popOperand(thread->jvm_stack);
@@ -2206,7 +2448,6 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						printf("%s", utf8_char);
 						break;
 					case	SHORT:
-/*						printf("topo = %" PRId16 "\n", (s2) ((thread->jvm_stack)->operand_stack)->value);*/
 						printf("%" PRId16, (s2) popOperand(thread->jvm_stack));
 						break;
 					case	INT:
@@ -2252,7 +2493,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 						u4	double_low_bytes = popOperand(thread->jvm_stack);
 						u4	double_high_bytes = popOperand(thread->jvm_stack);
 						u8	double_bits = ((u8) double_high_bytes << 32) | double_low_bytes;
-						
+
 						bool	isValidDouble = true;
 						switch(double_bits){
 							case	0x7ff0000000000000L:
@@ -2447,7 +2688,10 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				string_buffer = (OBJECT *) realloc(string_buffer, strlen(append_string) + strlen((char *) string_buffer) + 1);
 				strcat((char *) string_buffer, append_string);
 				pushOperand((u4) string_buffer, thread->jvm_stack);
+				
+				#ifdef	DEBUG
 				printf("string_buffer:%s", (char *) string_buffer);
+				#endif
 			}
 			else if(!strcmp(method_name, "toString")){
 				is_toString = true;
@@ -2510,7 +2754,9 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			i++;
 		}	
 	}
-	
+	OBJECT	* objectref;
+	CLASS_DATA	* super_class;
+	bool		findMethod;
 	switch(* thread->program_counter){// PARA TESTAR O HELLOWORLD
 		case	invokevirtual:
 			if(is_print || is_append || is_toString){ // NATIVE METHOD
@@ -2520,7 +2766,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("InvokeVirtualInitError");
 				exit(EXIT_FAILURE);
 			}
-			OBJECT	* objectref = (OBJECT *) popOperand(thread->jvm_stack);
+			objectref = (OBJECT *) popOperand(thread->jvm_stack);
 			if(!objectref){
 				puts("NullPointerException");
 				exit(EXIT_FAILURE);
@@ -2550,7 +2796,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 							 (method->class_data)->classloader_reference )){
 					if(class_objectref != method->class_data){
 						isSuperClass = false;
-						super_class = getSuperClass(class_objectref->classfile, jvm);						
+						super_class = getSuperClass(class_objectref->classfile, jvm);
 						while(super_class && !isSuperClass){
 							if(method->class_data == super_class){
 								isSuperClass = true;
@@ -2566,7 +2812,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					}
 				}
 			}
-			bool	findMethod = false;
+			findMethod	 = false;
 			super_class = class_objectref;
 			while(super_class && !findMethod){
 				if(invoked_method = getMethod(method_name, method_descriptor, super_class)){
@@ -2592,17 +2838,17 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 
 			break;
 		case	invokespecial:;
-			OBJECT	* objectref = (OBJECT *) popOperand(thread->jvm_stack);
+			objectref= (OBJECT *) popOperand(thread->jvm_stack);
 			if(!objectref){
 				puts("NullPointerException");
 				exit(EXIT_FAILURE);
 			}
-			
+
 			if(invoked_method->modifiers & ACC_STATIC){
 				puts("IncompatibleClassChangeError");
 				exit(EXIT_FAILURE);
 			}
-			
+
 			if((invoked_method->modifiers & ACC_PROTECTED)){
 				CLASS_DATA	* super_class = getSuperClass((method->class_data)->classfile, jvm);
 				bool	isSuperClass = false;
@@ -2613,13 +2859,13 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					else{
 						super_class =  getSuperClass(super_class->classfile, jvm);
 					}
-				}				
+				}
 				if(isSuperClass && ((invoked_method->class_data)->classloader_reference !=
 							 (method->class_data)->classloader_reference )){
 					CLASS_DATA	* class_objectref = objectref->class_data_reference;
 					if(class_objectref != method->class_data){
 						isSuperClass = false;
-						super_class = getSuperClass(class_objectref->classfile, jvm);						
+						super_class = getSuperClass(class_objectref->classfile, jvm);
 						while(super_class && !isSuperClass){
 							if(method->class_data == super_class){
 								isSuperClass = true;
@@ -2656,7 +2902,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					if(invoked_method = getMethod(method_name, method_descriptor, super_class)){
 						if(!(invoked_method->modifiers & ACC_STATIC)){
 							backupPC = thread->program_counter;
-							executeMethod(method_name, method_descriptor, super_class, 
+							executeMethod(method_name, method_descriptor, super_class,
 									jvm, thread, NULL, nargs, args);
 							thread->program_counter = backupPC;
 							findMethod = true;
@@ -2673,15 +2919,15 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					puts("AbstractMethodError:");
 					exit(EXIT_FAILURE);
 				}
-				
+
 			}
 			else{
 				backupPC = thread->program_counter;
 				executeMethod(method_name, method_descriptor, method_class, jvm, thread, objectref, nargs, args);
 				thread->program_counter = backupPC;
 			}
-			
-			
+
+
 			break;
 		case	invokestatic:
 			if((!strcmp(method_name, "<init>")) || (!strcmp(method_name, "<clinit>"))){
@@ -2701,7 +2947,7 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("IncompatibleClassChangeError");
 				exit(EXIT_FAILURE);
 			}
-			OBJECT	* objectref = (OBJECT *) popOperand(thread->jvm_stack);
+			objectref = (OBJECT *) popOperand(thread->jvm_stack);
 			if(!objectref){
 				puts("NullPointerException");
 				exit(EXIT_FAILURE);
@@ -2735,10 +2981,10 @@ void	invoke(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				puts("InvokeInterfaceError");
 				exit(EXIT_FAILURE);
 			}
-			OBJECT	* objectref = (OBJECT *) popOperand(thread->jvm_stack);
-			CLASS_DATA	* class_objectref = objectref->class_data_reference;
+			objectref = (OBJECT *) popOperand(thread->jvm_stack);
+			class_objectref = objectref->class_data_reference;
 			
-			bool	findMethod = false;
+			findMethod = false;
 			super_class = class_objectref;
 			while(super_class && !findMethod){
 				if(invoked_method = getMethod(method_name, method_descriptor, super_class)){
@@ -2783,20 +3029,27 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			u1	indexbyte1 = * (thread->program_counter + 1);
 			u1	indexbyte2 = * (thread->program_counter + 2);
 			u2	index = (indexbyte1 << 8) | indexbyte2;
+
+			#ifdef	DEBUG
 			printf("\t%" PRIu16, index);
+			#endif
+
 			cp_info	* cp =(thread->jvm_stack)->current_constant_pool;
 			cp_info	* cp_class = cp + index - 1;
-			
+
 			if(cp_class->tag != CONSTANT_Class){
 				puts("InstantiationError: Referência inválida para classe do objeto");
 				exit(EXIT_FAILURE);
 			}
-			
+
 			cp_info	* cp_class_name = cp + cp_class->u.Class.name_index - 1;
+			
 			char	* class_name = cp_class_name->u.Utf8.bytes;
 			class_name[cp_class_name->u.Utf8.length] = '\0';
 			
+			#ifdef	DEBUG
 			printf("\t<%s>\n", class_name);
+			#endif
 			
 			OBJECT	*	newObject;
 			if(!strcmp(class_name, "java/lang/StringBuffer")){
@@ -2807,25 +3060,22 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 				thread->program_counter += 3;
 				return;
 			}
-			
+
 			// CONTROLE DE ACESSO
 			u1	* backupPC = thread->program_counter;
 			CLASS_DATA	* object_class = getClass(cp_class_name, jvm);
 			if(!object_class){// se a classe do objeto não foi carregada
 				
-/*				puts("");*/
-		
 				char	* string = malloc((strlen(class_name) + 7) * sizeof(CHAR));
 				strcpy(string, class_name);
 				strcat(string, ".class");
-		
+
 				classLoading(string, &object_class, method->class_data, jvm);
 				free(string);
 				classLinking(object_class, jvm);
 				classInitialization(object_class, jvm, thread);
-				
+
 				thread->program_counter = backupPC;
-/*				printf("\nResume %s\n", opcodes[*thread->program_counter]);*/
 			}
 			else{
 				if(object_class != method->class_data){// Se o objeto não for da mesma classe do método
@@ -2842,6 +3092,8 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 			}
 			
 			newObject = (OBJECT *) malloc(sizeof(OBJECT));
+
+			newObject = (OBJECT *) malloc(sizeof(OBJECT));
 			newObject->class_data_reference = object_class;
 			newObject->prox = (jvm->heap)->objects;
 			(jvm->heap)->objects = newObject;
@@ -2855,7 +3107,7 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					VARIABLE	* var = (VARIABLE *) malloc(sizeof(VARIABLE));
 					var->field_reference = object_class->field_data + i;
 					(object_class->field_data + i)->var = var;
-			
+
 					u2	descriptor_index = ((object_class->field_data + i)->info)->descriptor_index;
 					(var->value).type = (object_class->runtime_constant_pool + descriptor_index - 1)->u.Utf8.bytes[0];
 					switch((var->value).type){
@@ -2897,7 +3149,7 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 					}
 					u2	access_flags = (object_class->field_data + i)->modifiers;
 /*			if(!(access_flags & ACC_FINAL)){*/
-					if(!(access_flags & ACC_STATIC)){		
+					if(!(access_flags & ACC_STATIC)){
 						var->prox = newObject->instance_variables;
 							newObject->instance_variables = var;
 					}
@@ -2907,8 +3159,11 @@ void	handleObject(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*			}*/
 				}
 			}
-			
-			
+
+			// coloca novo objeto no heap
+			newObject->prox = (jvm->heap)->objects;
+			(jvm->heap)->objects = newObject;
+
 			// coloca referencia do objeto na pilha
 			pushOperand((u4) newObject, thread->jvm_stack);
 			thread->program_counter += 3;
@@ -2961,6 +3216,27 @@ void	wide_(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	ifNull(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ifnull*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.ifnonnull*/
+    u1	branchbyte1 = * (thread->program_counter + 1);
+	u1	branchbyte2 = * (thread->program_counter + 2);
+	s2	branch = (branchbyte1 << 8) | branchbyte2;
+
+    s4 value = (s4) popOperand(thread->jvm_stack);
+	switch(* thread->program_counter){
+		case	ifnull:
+            if(value == 0){
+                thread->program_counter += branch;
+            }else{
+                thread->program_counter += 3;
+            }
+			break;
+        case	ifnonnull:
+            if(value != 0){
+                thread->program_counter += branch;
+            }else{
+                thread->program_counter += 3;
+            }
+			break;
+	}
 }
 
 // widejump	0xC8 a 0xC9
@@ -2968,6 +3244,22 @@ void	ifNull(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 void	widejump(METHOD_DATA * method, THREAD * thread, JVM * jvm){
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.goto_w*/
 /*https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.jsr_w*/
+    u1	branchbyte1 = * (thread->program_counter + 1);
+	u1	branchbyte2 = * (thread->program_counter + 2);
+	u1	branchbyte3 = * (thread->program_counter + 3);
+	u1	branchbyte4 = * (thread->program_counter + 4);
+
+	s4	branch = (s4)(((branchbyte1 & 0xFF)<<24) | ((branchbyte2 & 0xFF)<<16) | ((branchbyte3 & 0xFF)<<8) | (branchbyte1 & 0xFF));
+
+	switch(* thread->program_counter){
+		case	goto_w:
+            thread->program_counter += branch;
+			break;
+        case	jsr_w:
+            pushOperand((u4)(thread->program_counter += 5), thread->jvm_stack);
+            thread->program_counter += branch;
+			break;
+	}
 }
 
 // breakpoint	0xCA

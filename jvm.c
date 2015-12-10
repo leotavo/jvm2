@@ -94,8 +94,12 @@ The loading process consists of three basic activities. To load a type, the Java
 		exit(EXIT_FAILURE);
 	}
 	else{
+		#ifdef	DEBUG
 		printf("\nLoading\t%s\n\n", class_filename);
+		#endif
+		
 		cf = loadClassFile(class_binary_file);
+		
 	}
 /*	puts("DEBUG:\tCRIANDO CLASS_DATA");*/
 	(*cd) = (CLASS_DATA *) malloc(sizeof(CLASS_DATA));
@@ -507,18 +511,25 @@ void	executeMethod(char * method_name, char * method_descriptor, CLASS_DATA * cd
 			frame->return_value = NULL;
 			frame->prox = thread->jvm_stack;
 			thread->jvm_stack = frame;
+			
+			#ifdef	DEBUG
 			puts("=======================");
 			printf("método: ");
 			PrintConstantUtf8(cd->class_name, stdout);
 			printf(".%s\n", method_name);
 			puts("=======================");
+			#endif
+			
 			// CHAMA O INTERPRETADOR
 			interpreter(method, thread, jvm);
+			
+			#ifdef	DEBUG
 			puts("=======================");
 			printf("End\t");
 			PrintConstantUtf8(cd->class_name, stdout);
 			printf(".%s\n", method_name);
 			puts("=======================");
+			#endif
 			
 		}
 		else{
